@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Exact Brand Theme Tokens Sampled from Bloom By Pela Logo */
+
+    /* 1. Lush Botanical Emerald Green (Dominant in "Bloom" script & organic leaves) */
+    --color-green-50: #f0f7f2;
+    --color-green-100: #dbeef1;
+    --color-green-200: #b8dec3;
+    --color-green-300: #8bc79d;
+    --color-green-400: #55a86d;
+    --color-green-500: #2e8b49;
+    --color-green-600: #1e7438;
+    --color-green-700: #155d2c;
+    --color-green-800: #104923;
+    --color-green-900: #0a3318;
+    --color-green-950: #051d0d;
+
+    /* 2. Radiant Metallic Warm Gold (Sampled from the golden arc, leaf accent, and "BY Pela" emblem) */
+    --color-gold-50: #fdfaf2;
+    --color-gold-100: #faf2dc;
+    --color-gold-200: #f5e3b5;
+    --color-gold-300: #eccd84;
+    --color-gold-400: #deb252;
+    --color-gold-500: #c9932b;
+    --color-gold-600: #af7820;
+    --color-gold-700: #8b5b1a;
+    --color-gold-800: #71481b;
+    --color-gold-900: #5f3d1b;
+
+    /* 3. Deep Rich Burgundy / Espresso (Sampled from "Nourish. Naturally." & baseline accents) */
+    --color-burgundy-50: #faf3f4;
+    --color-burgundy-100: #f4e3e6;
+    --color-burgundy-200: #eacbcf;
+    --color-burgundy-300: #d9a5ad;
+    --color-burgundy-400: #c27683;
+    --color-burgundy-500: #a94f5f;
+    --color-burgundy-600: #8f3848;
+    --color-burgundy-700: #742937;
+    --color-burgundy-800: #5e222d;
+    --color-burgundy-900: #42161f;
+    --color-burgundy-950: #290b12;
+
+    /* 4. Warm Ivory Cream (Sampled from the illuminated background gradient) */
+    --color-cream-50: #fdfcf9;
+    --color-cream-100: #faf6ed;
+    --color-cream-200: #f5edda;
+    --color-cream-300: #ebddc0;
+    --color-cream-400: #dec79f;
+    --color-cream-500: #cdab7a;
+
+    --font-serif: 'Playfair Display', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@theme {
+  --color-green-50: var(--color-green-50);
+  --color-green-100: var(--color-green-100);
+  --color-green-200: var(--color-green-200);
+  --color-green-300: var(--color-green-300);
+  --color-green-400: var(--color-green-400);
+  --color-green-500: var(--color-green-500);
+  --color-green-600: var(--color-green-600);
+  --color-green-700: var(--color-green-700);
+  --color-green-800: var(--color-green-800);
+  --color-green-900: var(--color-green-900);
+  --color-green-950: var(--color-green-950);
+
+  --color-gold-50: var(--color-gold-50);
+  --color-gold-100: var(--color-gold-100);
+  --color-gold-200: var(--color-gold-200);
+  --color-gold-300: var(--color-gold-300);
+  --color-gold-400: var(--color-gold-400);
+  --color-gold-500: var(--color-gold-500);
+  --color-gold-600: var(--color-gold-600);
+  --color-gold-700: var(--color-gold-700);
+  --color-gold-800: var(--color-gold-800);
+  --color-gold-900: var(--color-gold-900);
+
+  --color-burgundy-50: var(--color-burgundy-50);
+  --color-burgundy-100: var(--color-burgundy-100);
+  --color-burgundy-200: var(--color-burgundy-200);
+  --color-burgundy-300: var(--color-burgundy-300);
+  --color-burgundy-400: var(--color-burgundy-400);
+  --color-burgundy-500: var(--color-burgundy-500);
+  --color-burgundy-600: var(--color-burgundy-600);
+  --color-burgundy-700: var(--color-burgundy-700);
+  --color-burgundy-800: var(--color-burgundy-800);
+  --color-burgundy-900: var(--color-burgundy-900);
+  --color-burgundy-950: var(--color-burgundy-950);
+
+  --color-cream-50: var(--color-cream-50);
+  --color-cream-100: var(--color-cream-100);
+  --color-cream-200: var(--color-cream-200);
+  --color-cream-300: var(--color-cream-300);
+  --color-cream-400: var(--color-cream-400);
+  --color-cream-500: var(--color-cream-500);
+
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-cream-50);
+  color: #26211f;
+}
+
+h1, h2, h3, .font-editorial {
+  font-family: var(--font-serif);
+}
+
+/* Metallic gold text gradient utility */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #deb252 0%, #c9932b 50%, #8b5b1a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Botanical emerald text gradient utility */
+.text-emerald-gradient {
+  background: linear-gradient(135deg, #2e8b49 0%, #155d2c 60%, #0a3318 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Sitewide Food Delivery Pattern (Juice bottles, delivery cloches, citrus slices, delivery bags, botanicals) */
+.food-delivery-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='%23155d2c' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'%3E%3C!-- Juice Bottle with Straw --%3E%3Crect x='14' y='14' width='12' height='18' rx='2.5' /%3E%3Cpath d='M17 14v-4h6v4' /%3E%3Cpath d='M20 10V5l4-2' /%3E%3Cline x1='16' y1='22' x2='24' y2='22' /%3E%3C!-- Delivery Cloche / Covered Dish --%3E%3Cline x1='60' y1='28' x2='86' y2='28' /%3E%3Cpath d='M63 28a10 10 0 0 1 20 0' /%3E%3Ccircle cx='73' cy='15' r='1.5' /%3E%3Cpath d='M73 12c-.5-1.5 .5-2.5 0-4' /%3E%3C!-- Citrus / Orange Slice --%3E%3Cpath d='M14 74a11 11 0 0 0 22 0Z' /%3E%3Cpath d='M17 74a8 8 0 0 0 16 0Z' /%3E%3Cline x1='25' y1='74' x2='25' y2='67' /%3E%3Cline x1='25' y1='74' x2='19' y2='70' /%3E%3Cline x1='25' y1='74' x2='31' y2='70' /%3E%3C!-- Food Delivery Bag --%3E%3Cpath d='M64 64h20l-2 20h-16Z' /%3E%3Cpath d='M70 64v-4a4 4 0 0 1 8 0v4' /%3E%3Ccircle cx='74' cy='73' r='1.5' /%3E%3C!-- Botanical Leaf (Bloom motif) --%3E%3Cpath d='M46 52c0-7 7-11 12-10 0 7-7 11-12 10Z' /%3E%3Cpath d='M46 52c4-3 8-6 12-10' /%3E%3C!-- Sparkles / Stars --%3E%3Cpath d='M48 14v5M45.5 16.5h5' /%3E%3Cpath d='M88 48v5M85.5 50.5h5' /%3E%3Cpath d='M8 46v5M5.5 48.5h5' /%3E%3Cpath d='M46 86v5M43.5 88.5h5' /%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100px 100px;
+}
+
+/* Dedicated mobile & desktop cart scroller with custom thumb */
+.cart-scroller {
+  scrollbar-width: thin;
+  scrollbar-color: #c9932b #faf2dc;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cart-scroller::-webkit-scrollbar {
+  width: 7px;
+}
+
+.cart-scroller::-webkit-scrollbar-track {
+  background: #f8f6f0;
+  border-radius: 9999px;
+  margin: 6px 0;
+}
+
+.cart-scroller::-webkit-scrollbar-thumb {
+  background: #deb252;
+  border-radius: 9999px;
+  border: 1.5px solid #f8f6f0;
+}
+
+.cart-scroller::-webkit-scrollbar-thumb:hover {
+  background: #c9932b;
+}
+

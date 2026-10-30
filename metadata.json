@@ -1,0 +1,6 @@
+{
+  "name": "Bloom by Pela",
+  "description": "Premium snacks and fresh cold-pressed juices crafted in Newcastle upon Tyne, UK.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
