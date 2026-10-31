@@ -69,6 +69,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /closedDates/{dateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /subscriptionPlans/{planId} {
       allow read: if true;
       allow write: if isAdmin();

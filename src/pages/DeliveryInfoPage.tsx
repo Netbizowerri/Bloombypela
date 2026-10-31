@@ -74,9 +74,9 @@ export const DeliveryInfoPage: React.FC = () => {
                   <td className="py-3.5 px-6 font-medium text-stone-800">{area.areaName}</td>
                   <td className="py-3.5 px-6">{formatPence(area.feePence)}</td>
                   <td className="py-3.5 px-6">{formatPence(area.minimumOrderPence)}</td>
-                  <td className="py-3.5 px-6 font-semibold text-[#245840]">
-                    {formatPence(area.freeDeliveryThresholdPence)}
-                  </td>
+                    <td className="py-3.5 px-6 font-semibold text-[#245840]">
+                      {formatPence(3000)}
+                    </td>
                 </tr>
               ))}
             </tbody>

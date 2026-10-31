@@ -1,5 +1,5 @@
 // PLACEHOLDER: Seed category catalogue. Replace with real categories before launch.
-import type { Category } from '../../types/categories';
+import type { Category } from '../../types/categories.js';
 
 export const SEED_CATEGORIES: Category[] = [
   {

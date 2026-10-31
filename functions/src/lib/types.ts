@@ -72,12 +72,40 @@ export interface SubscriptionPlan {
 
 export interface DeliveryArea {
   id: string;
-  outwardCode: string;
+  outwardCode: string; // e.g. "NE1"
   areaName: string;
   feePence: number;
   minimumOrderPence: number;
-  freeDeliveryThresholdPence: number;
   isActive: boolean;
+}
+
+export interface DeliveryScheduleDay {
+  id: string;
+  weekday: number; // 1 (Monday) to 7 (Sunday)
+  cutoffTime: string; // 'HH:mm' Europe/London
+  leadDays: number;
+  isActive: boolean;
+}
+
+export interface ClosedDate {
+  id: string;
+  date: string; // YYYY-MM-DD
+  reason: string;
+}
+
+export interface DateCapacity {
+  date: string; // YYYY-MM-DD
+  juiceCapacity: number;
+  juiceReserved: number;
+  subscriberShare: number;
+  closed: boolean;
+}
+
+export interface PublicSettings {
+  freeDeliveryThresholdPence: number;
+  snackFlatFeePence: number;
+  collectionEnabled: boolean;
+  collectionDetails?: string;
 }
 
 export interface AuditLogEntry {
@@ -90,3 +118,17 @@ export interface AuditLogEntry {
   metadata: Record<string, unknown> | null;
   createdAt: unknown; // Firestore server timestamp
 }
+
+export interface Promotion {
+  id: string;
+  code: string; // e.g. "WELCOME10", "FREEDELIVERY"
+  type: 'percent' | 'fixed' | 'freeDelivery';
+  value: number; // percent (1-100) or fixed amount in pence
+  minSpendPence: number; // minimum subtotal to apply
+  usageLimit: number | null; // max total redemptions (null = unlimited)
+  usedCount: number; // times already redeemed
+  startsAt: string | null; // ISO date/time (UTC)
+  endsAt: string | null; // ISO date/time (UTC)
+  active: boolean;
+}
+

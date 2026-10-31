@@ -76,6 +76,9 @@ const AdminDeliverySettings = lazy(() =>
 const AdminCapacity = lazy(() =>
   import('./pages/admin/AdminCapacity').then((module) => ({ default: module.AdminCapacity }))
 );
+const AdminPromotions = lazy(() =>
+  import('./pages/admin/AdminPromotions').then((module) => ({ default: module.AdminPromotions }))
+);
 
 export default function App() {
   return (
@@ -134,7 +137,7 @@ export default function App() {
                   <Route path="subscriptions" element={<AdminSubscriptions />} />
                   <Route path="delivery" element={<AdminDeliverySettings />} />
                   <Route path="capacity" element={<AdminCapacity />} />
-                  <Route path="promotions" element={<AdminCatalogue />} />
+                  <Route path="promotions" element={<AdminPromotions />} />
                   <Route path="audit" element={<AdminDashboard />} />
                 </Route>
 

@@ -1,5 +1,5 @@
 // PLACEHOLDER: Seed catalogue content. Replace with real subscription plans before launch.
-import type { SubscriptionPlan } from '../../types/products';
+import type { SubscriptionPlan } from '../../types/products.js';
 
 export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {

@@ -1,5 +1,5 @@
 // PLACEHOLDER: Seed catalogue content. Replace with real bundles before launch.
-import type { ProductBundle } from '../../types/products';
+import type { ProductBundle } from '../../types/products.js';
 
 export const SEED_BUNDLES: ProductBundle[] = [
   {

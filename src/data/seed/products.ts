@@ -1,6 +1,6 @@
 // PLACEHOLDER: Seed catalogue content. Replace with real products before launch;
 // every image URL and piece of copy here is placeholder material.
-import type { Product } from '../../types/products';
+import type { Product } from '../../types/products.js';
 
 export const SEED_PRODUCTS: Product[] = [
   // 1. SNACKS (Life in Every Bite) - Sourced from Nigeria

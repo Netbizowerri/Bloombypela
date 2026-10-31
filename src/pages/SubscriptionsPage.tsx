@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { formatPence } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -21,6 +22,15 @@ export const SubscriptionsPage: React.FC = () => {
   const { data: juices = [], isLoading: juicesLoading } = useProducts({ type: 'juice' });
   const isLoading = plansLoading || juicesLoading;
 
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('sub-weekly-bloom-5');
+  const [selectedFlavours, setSelectedFlavours] = useState<string[]>(() => {
+    const first = juices[0]?.name ?? '';
+    return Array.from({ length: 5 }, () => first);
+  });
+
+  const activePlan =
+    plans.find((p) => p.id === selectedPlanId) || plans[0];
+
   if (isLoading) return <PageLoader />;
   if (plansError) {
     return (
@@ -33,25 +43,7 @@ export const SubscriptionsPage: React.FC = () => {
       </div>
     );
   }
-  if (plans.length === 0) {
-    return (
-      <EmptyState
-        title="No subscription plans"
-        description="Subscription plans aren't available right now. Check back soon."
-      />
-    );
-  }
-
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('sub-weekly-bloom-5');
-  const [selectedFlavours, setSelectedFlavours] = useState<string[]>(() => {
-    const first = juices[0]?.name ?? '';
-    return Array.from({ length: 5 }, () => first);
-  });
-
-  const activePlan =
-    plans.find((p) => p.id === selectedPlanId) || plans[0];
-
-  if (!activePlan) {
+  if (plans.length === 0 || !activePlan) {
     return (
       <EmptyState
         title="No subscription plans"
@@ -79,7 +71,15 @@ export const SubscriptionsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16 text-left">
+    <ErrorBoundary
+      fallback={
+        <EmptyState
+          title="Something went wrong"
+          description="The subscription page encountered an error. Please refresh the page."
+        />
+      }
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16 text-left">
       {/* Hero Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="inline-block px-3 py-1 rounded-full bg-[#faf1de] text-[#8d561c] text-xs font-bold uppercase tracking-wider border border-[#f4e1ba]">
@@ -235,5 +235,6 @@ export const SubscriptionsPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 };

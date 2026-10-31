@@ -12,6 +12,27 @@ export {
   softDeleteProduct,
   updateProduct,
 } from './catalogue';
+export {
+  checkPostcode,
+  getAvailableDatesCallable,
+} from './delivery/callables';
+export {
+  createDeliveryArea,
+  updateDeliveryArea,
+  deleteDeliveryArea,
+  upsertDeliverySchedule,
+  upsertClosedDate,
+  deleteClosedDate,
+  upsertDateCapacity,
+  updatePublicSettings,
+} from './delivery/admin';
+export { quoteCart } from './checkout/quote';
+export {
+  createPromotion,
+  updatePromotion,
+  deletePromotion,
+  togglePromotion,
+} from './checkout/promotions';
 
 // Applied to every function in this codebase unless a function overrides it.
 setGlobalOptions({ region: REGION });
