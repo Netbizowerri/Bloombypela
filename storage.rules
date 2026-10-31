@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Images are uploaded to Cloudinary and only URLs are stored in Firestore.
+// Firebase Storage is not used, so no client may read or write here.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

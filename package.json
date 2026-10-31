@@ -6,9 +6,13 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
+    "build:functions": "npm --prefix functions run build",
     "preview": "vite preview",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit && tsc -p scripts/tsconfig.json --noEmit && npm --prefix functions run lint",
+    "emulators": "npm run build:functions && firebase emulators:start --only auth,firestore,functions,hosting",
+    "test:rules": "firebase emulators:exec --only firestore \"npm --prefix functions run test:rules\"",
+    "set-role": "tsx scripts/set-role.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -29,7 +33,9 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.0",
+    "firebase-admin": "^14.5.0",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.21.0",
     "typescript": "^7.0.2"
   }
 }

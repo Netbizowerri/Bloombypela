@@ -1,7 +1,8 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { 
-  getAuth, 
+import {
+  getAuth,
   type Auth,
+  connectAuthEmulator,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -11,7 +12,7 @@ import {
   onAuthStateChanged,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
 
 // Read config from environment variables
 const firebaseConfig = {
@@ -41,6 +42,36 @@ if (isFirebaseConfigured) {
   } catch (err) {
     console.warn('Firebase initialization warning:', err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Emulator wiring: development only, and only when VITE_USE_EMULATORS=true.
+// The registry lives on globalThis so Vite HMR does not connect twice.
+// ---------------------------------------------------------------------------
+const useEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true';
+
+interface EmulatorRegistry {
+  auth: WeakSet<Auth>;
+  firestore: WeakSet<Firestore>;
+}
+
+const emulatorRegistryHost = globalThis as typeof globalThis & {
+  __bloomFirebaseEmulators?: EmulatorRegistry;
+};
+
+const emulatorRegistry: EmulatorRegistry = (emulatorRegistryHost.__bloomFirebaseEmulators ??= {
+  auth: new WeakSet<Auth>(),
+  firestore: new WeakSet<Firestore>(),
+});
+
+if (useEmulators && auth && !emulatorRegistry.auth.has(auth)) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  emulatorRegistry.auth.add(auth);
+}
+
+if (useEmulators && db && !emulatorRegistry.firestore.has(db)) {
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  emulatorRegistry.firestore.add(db);
 }
 
 export { 

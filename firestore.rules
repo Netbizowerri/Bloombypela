@@ -1,0 +1,193 @@
+rules_version = '2';
+
+// Bloom by Pela - Firestore security rules.
+// Default deny. Client writes are limited to a customer's own profile document;
+// every order, subscription, delivery, stock, capacity and promotion usage change
+// is written by Cloud Functions with the Admin SDK (which bypasses these rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Roles are Firebase custom claims set only by the protected set-role script.
+    function userRole() {
+      return isSignedIn() ? request.auth.token.role : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userRole() == 'admin';
+    }
+
+    function isStaff() {
+      return isSignedIn() && (userRole() == 'staff' || userRole() == 'admin');
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---------------------------------------------------------------------
+    // Public catalogue: public read, admin write
+    // ---------------------------------------------------------------------
+    match /products/{productId} {
+      // Hidden products are only visible to staff.
+      allow read: if isStaff() || resource.data.status != 'hidden';
+      allow write: if isAdmin();
+
+      match /variants/{variantId} {
+        function parentIsVisible() {
+          return get(/databases/$(database)/documents/products/$(productId)).data.status != 'hidden';
+        }
+
+        allow read: if isStaff() || parentIsVisible();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /bundles/{bundleId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /deliveryAreas/{areaId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /deliverySchedule/{dayId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subscriptionPlans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /publicSettings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // Operational data: staff read, admin write
+    // ---------------------------------------------------------------------
+    match /dateCapacity/{dateId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /promotions/{promotionId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // Customers: owner or staff read; owner may create/update a limited profile
+    // ---------------------------------------------------------------------
+    match /customers/{uid} {
+      function profileFieldsAreValid() {
+        let data = request.resource.data;
+        return data.name is string
+          && data.name.size() > 0
+          && data.name.size() <= 100
+          && data.email is string
+          && data.email.size() > 0
+          && data.email.size() <= 320
+          && data.addresses is list
+          && data.addresses.size() <= 20
+          && data.marketingConsent is bool
+          && (!('phone' in data) || data.phone is string)
+          && (!('phone' in data) || data.phone.size() <= 32);
+      }
+
+      allow read: if isStaff() || isOwner(uid);
+
+      // createdAt is accepted only when it is the request server timestamp, so the
+      // client can never back-date or forge the account creation time.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'phone',
+          'addresses',
+          'marketingConsent',
+          'createdAt'
+        ])
+        && profileFieldsAreValid()
+        && (
+          !('createdAt' in request.resource.data)
+          || request.resource.data.createdAt == request.time
+        );
+
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'phone',
+          'addresses',
+          'marketingConsent'
+        ])
+        && profileFieldsAreValid();
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Orders and subscriptions: readable by owner or staff, never client-written
+    // ---------------------------------------------------------------------
+    match /orders/{orderId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /subscriptions/{subscriptionId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /subscriptionDeliveries/{deliveryId} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Audit trail and server-only collections
+    // ---------------------------------------------------------------------
+    match /auditLog/{entryId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Stripe webhook idempotency records and stock/capacity reservations are
+    // server-only: no client can read or write them.
+    match /stripeEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    match /reservations/{reservationId} {
+      allow read, write: if false;
+    }
+
+    // ---------------------------------------------------------------------
+    // Explicit default deny for every other path
+    // ---------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
