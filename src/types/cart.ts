@@ -1,5 +1,11 @@
 import { Product, ProductVariant } from './products';
 
+export interface StoredCartItem {
+  productId: string;
+  variantId: string;
+  quantity: number;
+}
+
 export interface CartItem {
   id: string; // unique item id in cart (productId + variantId)
   product: Product;

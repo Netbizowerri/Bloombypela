@@ -34,8 +34,9 @@ export const RegisterPage: React.FC = () => {
       await signUpWithEmail(email, password, name);
       success('Account created!', 'Welcome to Bloom by Pela.');
       navigate('/account');
-    } catch (err: any) {
-      error('Registration failed', err?.message || 'Could not complete registration.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not complete registration.';
+      error('Registration failed', message);
     } finally {
       setIsLoading(false);
     }

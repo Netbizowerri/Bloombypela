@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from './AdminSidebar';
 import { ToastContainer } from '../ui/Toast';
-import { Menu, Shield, ExternalLink, ChevronDown } from 'lucide-react';
+import { PageLoader } from '../ui/PageLoader';
+import { Menu, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useRole } from '../../hooks/useRole';
-import { UserRole } from '../../types/auth';
 
 export const AdminLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const { user, setDevRole } = useAuth();
-  const { role } = useRole();
+  const { user } = useAuth();
   const location = useLocation();
 
   const getPageTitle = () => {
@@ -70,43 +67,6 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Quick Role Tester in Admin Header */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-700 transition-colors"
-                title="Test Role Simulation"
-              >
-                <Shield className="h-3.5 w-3.5 text-[#155d2c]" />
-                <span className="capitalize">Role: {role}</span>
-                <ChevronDown className="h-3 w-3 text-stone-400" />
-              </button>
-
-              {roleMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg bg-white shadow-xl border border-stone-200 py-1.5 z-50 text-left">
-                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                    Switch Test Role:
-                  </div>
-                  {(['admin', 'staff', 'customer', 'guest'] as UserRole[]).map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => {
-                        setDevRole(r);
-                        setRoleMenuOpen(false);
-                      }}
-                      className={`w-full px-3 py-1.5 text-xs text-left capitalize flex items-center justify-between hover:bg-stone-100 ${
-                        role === r ? 'font-bold text-[#155d2c] bg-[#f0f7f2]' : 'text-stone-700'
-                      }`}
-                    >
-                      <span>{r}</span>
-                      {role === r && <span className="text-[10px] bg-[#155d2c] text-white px-1.5 py-0.2 rounded">Active</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             <Link
               to="/"
               target="_blank"
@@ -125,7 +85,9 @@ export const AdminLayout: React.FC = () => {
 
         {/* Admin Page Body */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
 

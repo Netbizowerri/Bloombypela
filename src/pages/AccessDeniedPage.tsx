@@ -1,12 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, KeyRound } from 'lucide-react';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { useAuth } from '../context/AuthContext';
 import { useRole } from '../hooks/useRole';
 
 export const AccessDeniedPage: React.FC = () => {
-  const { setDevRole } = useAuth();
   const { role } = useRole();
 
   return (
@@ -28,27 +26,6 @@ export const AccessDeniedPage: React.FC = () => {
         <p className="mt-2 text-xs text-stone-500">
           In production, access requires a verified Firebase custom claim (<code>role: 'admin'</code>).
         </p>
-
-        {/* Development & Review Mode Helper */}
-        <div className="mt-6 p-4 rounded-xl bg-[#faf1de] border border-[#f4e1ba] text-left">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#8d561c]">
-            <KeyRound className="h-4 w-4" />
-            <span>Developer / Reviewer Bypass:</span>
-          </div>
-          <p className="text-[11px] text-[#73451c] mt-1">
-            Click below to instantly assume the Admin role and unlock the full management portal:
-          </p>
-          <div className="mt-3">
-            <Button
-              onClick={() => setDevRole('admin')}
-              variant="gold"
-              size="sm"
-              className="w-full text-xs"
-            >
-              Simulate Admin Access Now
-            </Button>
-          </div>
-        </div>
 
         <div className="mt-6 flex flex-col gap-2">
           <Link to="/">

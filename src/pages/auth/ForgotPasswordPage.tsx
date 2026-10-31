@@ -25,8 +25,9 @@ export const ForgotPasswordPage: React.FC = () => {
       await resetPassword(email);
       setIsSubmitted(true);
       success('Instructions sent', 'Check your inbox for password reset instructions.');
-    } catch (err: any) {
-      error('Error', err?.message || 'Could not send reset email.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Could not send reset email.';
+      error('Error', message);
     } finally {
       setIsLoading(false);
     }

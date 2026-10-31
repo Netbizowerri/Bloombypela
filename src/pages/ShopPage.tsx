@@ -19,6 +19,13 @@ import {
 } from 'lucide-react';
 import { Product, ProductVariant } from '../types/products';
 
+type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name';
+
+const SORT_OPTIONS: readonly SortOption[] = ['featured', 'price-asc', 'price-desc', 'name'];
+
+const parseSortOption = (value: string): SortOption =>
+  SORT_OPTIONS.find((option) => option === value) ?? 'featured';
+
 export const ShopPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { addItem, openCart } = useCart();
@@ -28,7 +35,7 @@ export const ShopPage: React.FC = () => {
   const categoryParam = searchParams.get('category') || 'all';
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam);
-  const [sortBy, setSortBy] = useState<'featured' | 'price-asc' | 'price-desc' | 'name'>('featured');
+  const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<Record<string, string>>({});
@@ -208,7 +215,7 @@ export const ShopPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(parseSortOption(e.target.value))}
               className="px-3 py-2 text-xs bg-white border border-stone-200 rounded-xl text-stone-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#155d2c] shadow-2xs"
             >
               <option value="featured">Sort: Featured</option>

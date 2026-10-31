@@ -18,7 +18,7 @@ export const SubscriptionsPage: React.FC = () => {
   const [selectedFlavours, setSelectedFlavours] = useState<string[]>([
     'Tropical Bloom',
     'Tropical Bloom',
-    'Skin Glow/Skin Flow — final product name to be confirmed',
+    'Skin Glow',
     'Zobo',
     'Detox juice blend',
   ]);

@@ -280,7 +280,7 @@ export const AccountPage: React.FC = () => {
                   2 × Tropical Bloom (330ml)
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
-                  1 × Skin Glow/Skin Flow — final product name to be confirmed (330ml)
+                  1 × Skin Glow (330ml)
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
                   1 × Zobo (330ml)

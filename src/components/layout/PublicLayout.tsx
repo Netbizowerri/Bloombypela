@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { PublicHeader } from './PublicHeader';
 import { PublicFooter } from './PublicFooter';
 import { MobileStickyFooter } from './MobileStickyFooter';
 import { CartDrawer } from '../cart/CartDrawer';
 import { ToastContainer } from '../ui/Toast';
+import { PageLoader } from '../ui/PageLoader';
 
 export const PublicLayout: React.FC = () => {
   return (
@@ -20,7 +21,9 @@ export const PublicLayout: React.FC = () => {
       <div className="relative z-10 flex flex-col min-h-screen">
         <PublicHeader />
         <main className="flex-1 pb-20 md:pb-0">
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </main>
         <PublicFooter />
         <MobileStickyFooter />

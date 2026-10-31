@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, User, Menu, X, Shield, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Menu, X, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useRole } from '../../hooks/useRole';
 import { useCart } from '../../context/CartContext';
-import { UserRole } from '../../types/auth';
 
 export const PublicHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const { user, signOut, setDevRole } = useAuth();
-  const { role, isStaff } = useRole();
+  const { user, signOut } = useAuth();
+  const { isStaff } = useRole();
   const { totalItems, openCart } = useCart();
   const location = useLocation();
 
@@ -22,11 +20,6 @@ export const PublicHeader: React.FC = () => {
     { label: 'Delivery', path: '/delivery' },
     { label: 'Our Story', path: '/about' },
   ];
-
-  const handleRoleChange = (newRole: UserRole) => {
-    setDevRole(newRole);
-    setRoleMenuOpen(false);
-  };
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FFF5E6] border-b border-[#eedcc8] px-4 sm:px-6 lg:px-8 py-2.5 transition-all shadow-xs">
@@ -105,43 +98,6 @@ export const PublicHeader: React.FC = () => {
               Sign In
             </Link>
           )}
-
-          {/* Quick Role Tester Dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full bg-white/80 hover:bg-white text-stone-700 border border-stone-300/80 shadow-2xs transition-colors"
-              title="Switch role for testing"
-            >
-              <span className="capitalize">{role}</span>
-              <ChevronDown className="h-3 w-3 text-stone-500" />
-            </button>
-
-            {roleMenuOpen && (
-              <div className="absolute right-0 mt-2 w-44 rounded-xl bg-white shadow-xl border border-stone-200 py-1.5 z-50 text-left text-xs">
-                <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                  Switch Preview Role:
-                </div>
-                {(['admin', 'staff', 'customer', 'guest'] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => handleRoleChange(r)}
-                    className={`w-full px-3 py-1.5 text-left capitalize flex items-center justify-between hover:bg-stone-50 ${
-                      role === r ? 'font-bold text-[#155d2c] bg-emerald-50/60' : 'text-stone-700'
-                    }`}
-                  >
-                    <span>{r}</span>
-                    {role === r && (
-                      <span className="text-[10px] bg-[#155d2c] text-white px-1.5 py-0.2 rounded">
-                        Active
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
           {/* Shopping Basket Button with 44px touch-target & tactile feedback */}
           <button

@@ -45,7 +45,7 @@ export const PublicFooter: React.FC = () => {
             </span>
             <h4 className="font-serif text-lg font-semibold text-white">Life in Every Sip</h4>
             <p className="text-xs text-stone-300 max-w-xs leading-relaxed">
-              Small-batch cold-pressed fresh juices and drinks (Tropical Bloom, Skin Glow/Skin Flow, Detox juice blend, Zobo, Ginger shots) freshly prepared in the UK.
+              Small-batch cold-pressed fresh juices and drinks (Tropical Bloom, Skin Glow, Detox juice blend, Zobo, Ginger shots) freshly prepared in the UK.
             </p>
           </div>
 

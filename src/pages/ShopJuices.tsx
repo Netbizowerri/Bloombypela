@@ -36,7 +36,7 @@ export const ShopJuicesPage: React.FC = () => {
             Fresh juices and drinks
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-2 max-w-2xl leading-relaxed">
-            Raw, cold-pressed, and never heat-pasteurised. Crafted weekly in Newcastle upon Tyne: Tropical Bloom, Skin Glow/Skin Flow, Detox juice blend, Zobo, and Ginger shots.
+            Raw, cold-pressed, and never heat-pasteurised. Crafted weekly in Newcastle upon Tyne: Tropical Bloom, Skin Glow, Detox juice blend, Zobo, and Ginger shots.
           </p>
         </div>
 

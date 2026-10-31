@@ -156,9 +156,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     seoTitle: 'Tropical Bloom | Bloom by Pela Newcastle',
     seoDescription: 'Cold-pressed tropical juice with mango, pineapple, passion fruit, and ginger.',
   },
+  // PLACEHOLDER: product name confirmed temporarily as "Skin Glow". The earlier seed
+  // value was "Skin Glow/Skin Flow — final product name to be confirmed"; replace the
+  // display name and seoTitle below once the owner confirms the final name.
   {
     id: 'prod-juice-skin-glow',
-    name: 'Skin Glow/Skin Flow — final product name to be confirmed',
+    name: 'Skin Glow',
     slug: 'skin-glow-skin-flow',
     type: 'juice',
     category: 'Fresh juices and drinks',
@@ -178,7 +181,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     variants: [
       { id: 'var-sg-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-SG330', stock: 45, isDefault: true },
     ],
-    seoTitle: 'Skin Glow/Skin Flow — final product name to be confirmed | Bloom by Pela Newcastle',
+    seoTitle: 'Skin Glow | Bloom by Pela Newcastle',
     seoDescription: 'Radiance booster juice blend with carrot, turmeric, crisp apple, orange, and lemon.',
   },
   {
