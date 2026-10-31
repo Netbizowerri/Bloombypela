@@ -51,6 +51,15 @@ export const SubscriptionsPage: React.FC = () => {
   const activePlan =
     plans.find((p) => p.id === selectedPlanId) || plans[0];
 
+  if (!activePlan) {
+    return (
+      <EmptyState
+        title="No subscription plans"
+        description="Subscription plans aren't available right now. Check back soon."
+      />
+    );
+  }
+
   const handleFlavourToggle = (juiceName: string) => {
     if (selectedFlavours.length < activePlan.bottleCount) {
       setSelectedFlavours([...selectedFlavours, juiceName]);
