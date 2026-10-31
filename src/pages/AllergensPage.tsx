@@ -23,7 +23,7 @@ export const AllergensPage: React.FC = () => {
         <div className="text-xs text-stone-800 space-y-1.5 leading-relaxed">
           <h4 className="font-bold text-[#7e2b44]">Kitchen & Cross-Contamination Statement</h4>
           <p>
-            While our fresh juices and fruit snacks are prepared under rigorous hygiene controls, some snacks (such as Heritage Chin Chin and Roasted Groundnuts) are prepared where gluten, dairy, eggs, and nuts are handled. If you suffer from a severe anaphylactic allergy, please contact us before ordering.
+            While our fresh juices and fruit snacks are prepared under rigorous hygiene controls, some snacks (such as Chin chin and Groundnuts) are prepared where gluten, dairy, eggs, and nuts are handled. If you suffer from a severe anaphylactic allergy, please contact us before ordering.
           </p>
         </div>
       </div>

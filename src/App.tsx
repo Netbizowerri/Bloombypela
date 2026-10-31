@@ -10,6 +10,7 @@ import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
 
 // Layouts & Guards
+import { ScrollToTop } from './components/common/ScrollToTop';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -19,6 +20,7 @@ import { HomePage } from './pages/Home';
 import { ShopPage } from './pages/ShopPage';
 import { ShopSnacksPage } from './pages/ShopSnacks';
 import { ShopJuicesPage } from './pages/ShopJuices';
+import { ProductDetailPage } from './pages/ProductDetailPage';
 import { SubscriptionsPage } from './pages/SubscriptionsPage';
 import { AboutPage } from './pages/AboutPage';
 import { DeliveryInfoPage } from './pages/DeliveryInfoPage';
@@ -46,6 +48,7 @@ import { AdminCapacity } from './pages/admin/AdminCapacity';
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <ToastProvider>
           <CartProvider>
@@ -56,6 +59,7 @@ export default function App() {
                 <Route path="/shop" element={<ShopPage />} />
                 <Route path="/shop/snacks" element={<ShopSnacksPage />} />
                 <Route path="/shop/juices" element={<ShopJuicesPage />} />
+                <Route path="/product/:slug" element={<ProductDetailPage />} />
                 <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/delivery" element={<DeliveryInfoPage />} />

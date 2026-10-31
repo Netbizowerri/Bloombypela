@@ -38,8 +38,8 @@ export const AccountPage: React.FC = () => {
       date: '2026-10-23',
       deliveryDate: '2026-10-29',
       items: [
-        { name: 'Tropical Bloom Juice (330ml)', quantity: 2, pricePence: 900 },
-        { name: 'Artisan Plantain Chips (150g)', quantity: 2, pricePence: 700 },
+        { name: 'Tropical Bloom (330ml)', quantity: 2, pricePence: 900 },
+        { name: 'Plantain chips (150g)', quantity: 2, pricePence: 700 },
       ],
       totalPence: 1600,
       status: 'Delivered',
@@ -277,16 +277,16 @@ export const AccountPage: React.FC = () => {
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-stone-700">
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
-                  2 × Tropical Bloom Juice (330ml)
+                  2 × Tropical Bloom (330ml)
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
-                  1 × Skin Glow Elixir (330ml)
+                  1 × Skin Glow/Skin Flow — final product name to be confirmed (330ml)
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
-                  1 × Artisan Zobo Hibiscus Tonic (330ml)
+                  1 × Zobo (330ml)
                 </div>
                 <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200">
-                  1 × Detox Green Juice Blend (330ml)
+                  1 × Detox juice blend (330ml)
                 </div>
               </div>
             </div>

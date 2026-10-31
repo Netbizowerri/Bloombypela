@@ -50,8 +50,9 @@
     --color-cream-400: #dec79f;
     --color-cream-500: #cdab7a;
 
-    --font-serif: 'Playfair Display', Georgia, serif;
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Poppins', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-poppins: 'Poppins', system-ui, -apple-system, sans-serif;
   }
 }
 
@@ -100,16 +101,17 @@
 
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
+  --font-poppins: var(--font-poppins);
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: 'Poppins', var(--font-sans);
   background-color: var(--color-cream-50);
   color: #26211f;
 }
 
-h1, h2, h3, .font-editorial {
-  font-family: var(--font-serif);
+h1, h2, h3, h4, h5, h6, .font-serif, .font-editorial {
+  font-family: 'Poppins', var(--font-sans);
 }
 
 /* Metallic gold text gradient utility */

@@ -28,7 +28,7 @@ export const AdminOrders: React.FC = () => {
       deliveryDate: '2026-11-05 (Thursday)',
       items: [
         { name: 'Weekly Bloom 5 (Juice Subscription)', qty: 1, pricePence: 1950 },
-        { name: 'Artisan Plantain Chips (150g)', qty: 1, pricePence: 350 },
+        { name: 'Plantain chips (150g)', qty: 1, pricePence: 350 },
       ],
       totalPence: 2300,
       status: 'Preparing',
@@ -43,7 +43,7 @@ export const AdminOrders: React.FC = () => {
       area: 'NE1 (City Centre)',
       deliveryDate: '2026-11-05 (Thursday)',
       items: [
-        { name: 'Tropical Bloom Juice (330ml)', qty: 3, pricePence: 1350 },
+        { name: 'Tropical Bloom (330ml)', qty: 3, pricePence: 1350 },
       ],
       totalPence: 1350,
       status: 'Preparing',
@@ -58,7 +58,7 @@ export const AdminOrders: React.FC = () => {
       deliveryDate: '2026-10-29 (Thursday)',
       items: [
         { name: 'The Bloom Tasting Box', qty: 1, pricePence: 2200 },
-        { name: 'Fiery Ginger Wellness Shots (6-pack)', qty: 1, pricePence: 1350 },
+        { name: 'Ginger shots (6-pack)', qty: 1, pricePence: 1350 },
       ],
       totalPence: 3550,
       status: 'Delivered',

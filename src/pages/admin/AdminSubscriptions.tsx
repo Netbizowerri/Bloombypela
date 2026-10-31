@@ -18,7 +18,7 @@ export const AdminSubscriptions: React.FC = () => {
       pricePence: 1950,
       status: 'active',
       nextDelivery: '2026-11-05 (Thursday)',
-      flavours: 'Tropical Bloom x2, Skin Glow x1, Zobo x1, Detox x1',
+      flavours: 'Tropical Bloom x2, Skin Glow/Skin Flow x1, Zobo x1, Detox juice blend x1',
       postcode: 'NE2 2AZ',
     },
     {

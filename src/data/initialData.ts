@@ -2,13 +2,13 @@ import { Product, SubscriptionPlan, ProductBundle } from '../types/products';
 import { DeliveryArea } from '../types/cart';
 
 export const INITIAL_PRODUCTS: Product[] = [
-  // SNACKS (Life in Every Bite) - Sourced from Nigeria
+  // 1. SNACKS (Life in Every Bite) - Sourced from Nigeria
   {
     id: 'prod-snack-plantain-chips',
-    name: 'Artisan Plantain Chips',
-    slug: 'artisan-plantain-chips',
+    name: 'Plantain chips',
+    slug: 'plantain-chips',
     type: 'snack',
-    category: 'Packaged Snacks',
+    category: 'Snacks',
     origin: 'Nigeria',
     weightOrVolume: '150g',
     description:
@@ -17,8 +17,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Selected Green Plantains', 'Sustainable Sunflower Oil', 'Fine Sea Salt'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Plantain_Chips',
       'https://images.unsplash.com/photo-1621996346565-e3d5d62816dd?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
     isPopular: true,
@@ -26,15 +26,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-pc-150', name: '150g Sharing Bag', pricePence: 350, sku: 'BBP-SNK-PC150', stock: 45, isDefault: true },
       { id: 'var-pc-300', name: '300g Party Pouch', pricePence: 650, sku: 'BBP-SNK-PC300', stock: 28 },
     ],
-    seoTitle: 'Artisan Plantain Chips | Bloom by Pela Newcastle',
+    seoTitle: 'Plantain chips | Bloom by Pela Newcastle',
     seoDescription: 'Crispy Nigerian plantain chips kettle-cooked with sea salt. Handcrafted snacks in Newcastle upon Tyne.',
   },
   {
     id: 'prod-snack-coconut-chips',
-    name: 'Toasted Coconut Chips',
-    slug: 'toasted-coconut-chips',
+    name: 'Coconut chips',
+    slug: 'coconut-chips',
     type: 'snack',
-    category: 'Packaged Snacks',
+    category: 'Snacks',
     origin: 'Nigeria',
     weightOrVolume: '100g',
     description:
@@ -43,6 +43,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Pure Coconut Flesh', 'Unrefined Cane Sugar', 'Natural Vanilla Extract', 'Sea Salt'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Coconut_Chips',
       'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -51,13 +52,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-cc-100', name: '100g Resealable Pouch', pricePence: 320, sku: 'BBP-SNK-CC100', stock: 30, isDefault: true },
       { id: 'var-cc-250', name: '250g Jar', pricePence: 680, sku: 'BBP-SNK-CC250', stock: 15 },
     ],
+    seoTitle: 'Coconut chips | Bloom by Pela Newcastle',
+    seoDescription: 'Fragrant roasted coconut chips with natural vanilla and cane sugar.',
   },
   {
     id: 'prod-snack-chin-chin',
-    name: 'Heritage Chin Chin Bites',
-    slug: 'heritage-chin-chin-bites',
+    name: 'Chin chin',
+    slug: 'chin-chin',
     type: 'snack',
-    category: 'Packaged Snacks',
+    category: 'Snacks',
     origin: 'Nigeria',
     weightOrVolume: '200g',
     description:
@@ -66,6 +69,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Wheat Flour', 'Pure Butter', 'Sugar', 'Eggs', 'Whole Milk', 'Nutmeg', 'Baking Powder', 'Salt'],
     allergens: ['Cereals containing gluten', 'Eggs', 'Milk'],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Chinchin',
       'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -73,13 +77,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-ch-200', name: '200g Tub', pricePence: 420, sku: 'BBP-SNK-CH200', stock: 24, isDefault: true },
       { id: 'var-ch-450', name: '450g Gifting Tub', pricePence: 850, sku: 'BBP-SNK-CH450', stock: 18 },
     ],
+    seoTitle: 'Chin chin | Bloom by Pela Newcastle',
+    seoDescription: 'Traditional Nigerian crunchy chin chin pastry bites spiced with fragrant nutmeg.',
   },
   {
     id: 'prod-snack-groundnuts',
-    name: 'Slow-Roasted Groundnuts',
-    slug: 'slow-roasted-groundnuts',
+    name: 'Groundnuts',
+    slug: 'groundnuts',
     type: 'snack',
-    category: 'Packaged Snacks',
+    category: 'Snacks',
     origin: 'Nigeria',
     weightOrVolume: '200g',
     description:
@@ -88,19 +94,22 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Selected Peanuts (Groundnuts)', 'Fine Sea Salt'],
     allergens: ['Peanuts'],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Groundnut',
       'https://images.unsplash.com/photo-1567894340315-735d7c361db0?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
     variants: [
       { id: 'var-gn-200', name: '200g Pouch', pricePence: 300, sku: 'BBP-SNK-GN200', stock: 40, isDefault: true },
     ],
+    seoTitle: 'Groundnuts | Bloom by Pela Newcastle',
+    seoDescription: 'Classic sand-roasted Nigerian groundnuts with golden nutty crunch.',
   },
   {
     id: 'prod-snack-cashews',
-    name: 'Hand-Selected Roasted Cashews',
-    slug: 'hand-selected-roasted-cashews',
+    name: 'Cashews',
+    slug: 'cashews',
     type: 'snack',
-    category: 'Packaged Snacks',
+    category: 'Snacks',
     origin: 'West Africa',
     weightOrVolume: '180g',
     description:
@@ -109,21 +118,24 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Whole Cashew Nuts', 'Cold-Pressed Peanut Oil', 'Sea Salt'],
     allergens: ['Tree nuts', 'Peanuts'],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Cashew',
       'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
     variants: [
       { id: 'var-cw-180', name: '180g Pouch', pricePence: 480, sku: 'BBP-SNK-CW180', stock: 22, isDefault: true },
     ],
+    seoTitle: 'Cashews | Bloom by Pela Newcastle',
+    seoDescription: 'Hand-selected whole roasted jumbo cashews toasted with sea salt.',
   },
 
-  // FRESH JUICES (Life in Every Sip) - Prepared Fresh in UK
+  // 2. FRESH JUICES AND DRINKS (Life in Every Sip) - Prepared Fresh in UK
   {
     id: 'prod-juice-tropical-bloom',
-    name: 'Tropical Bloom Juice',
-    slug: 'tropical-bloom-juice',
+    name: 'Tropical Bloom',
+    slug: 'tropical-bloom',
     type: 'juice',
-    category: 'Fresh Juices & Drinks',
+    category: 'Fresh juices and drinks',
     origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
@@ -132,6 +144,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Mango Puree', 'Fresh Pineapple Juice', 'Passion Fruit', 'Fresh Orange', 'Raw Ginger Root'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Tropical_Bloom',
       'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -140,13 +153,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-tb-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-TB330', stock: 50, isDefault: true },
       { id: 'var-tb-750', name: '750ml Sharing Carafe', pricePence: 850, sku: 'BBP-JCE-TB750', stock: 20 },
     ],
+    seoTitle: 'Tropical Bloom | Bloom by Pela Newcastle',
+    seoDescription: 'Cold-pressed tropical juice with mango, pineapple, passion fruit, and ginger.',
   },
   {
     id: 'prod-juice-skin-glow',
-    name: 'Skin Glow Elixir',
-    slug: 'skin-glow-elixir',
+    name: 'Skin Glow/Skin Flow — final product name to be confirmed',
+    slug: 'skin-glow-skin-flow',
     type: 'juice',
-    category: 'Fresh Juices & Drinks',
+    category: 'Fresh juices and drinks',
     origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
@@ -155,6 +170,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Organic Carrots', 'Red Apples', 'Fresh Orange', 'Raw Turmeric', 'Lemon Juice'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Skin_Glow',
       'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -162,13 +178,15 @@ export const INITIAL_PRODUCTS: Product[] = [
     variants: [
       { id: 'var-sg-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-SG330', stock: 45, isDefault: true },
     ],
+    seoTitle: 'Skin Glow/Skin Flow — final product name to be confirmed | Bloom by Pela Newcastle',
+    seoDescription: 'Radiance booster juice blend with carrot, turmeric, crisp apple, orange, and lemon.',
   },
   {
     id: 'prod-juice-detox-blend',
-    name: 'Detox Green Juice Blend',
-    slug: 'detox-green-juice-blend',
+    name: 'Detox juice blend',
+    slug: 'detox-juice-blend',
     type: 'juice',
-    category: 'Fresh Juices & Drinks',
+    category: 'Fresh juices and drinks',
     origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
@@ -177,19 +195,22 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Cucumber', 'Celery', 'Green Apples', 'Spinach', 'Lime', 'Garden Mint'],
     allergens: ['Celery'],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Detox_Blend',
       'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
     variants: [
       { id: 'var-dt-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-DT330', stock: 40, isDefault: true },
     ],
+    seoTitle: 'Detox juice blend | Bloom by Pela Newcastle',
+    seoDescription: 'Ultra-cleansing cold-pressed cucumber, celery, spinach, green apple, and mint juice blend.',
   },
   {
     id: 'prod-juice-zobo',
-    name: 'Artisan Zobo Hibiscus Tonic',
-    slug: 'artisan-zobo-hibiscus-tonic',
+    name: 'Zobo',
+    slug: 'zobo',
     type: 'juice',
-    category: 'Fresh Juices & Drinks',
+    category: 'Fresh juices and drinks',
     origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
@@ -198,6 +219,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Nigerian Dried Hibiscus Flowers', 'Pineapple Rind Infusion', 'Ginger Root', 'Cloves', 'Cinnamon Stick'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Zobo',
       'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -206,13 +228,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-zb-330', name: '330ml Glass Bottle', pricePence: 420, sku: 'BBP-JCE-ZB330', stock: 60, isDefault: true },
       { id: 'var-zb-750', name: '750ml Sharing Bottle', pricePence: 800, sku: 'BBP-JCE-ZB750', stock: 25 },
     ],
+    seoTitle: 'Zobo | Bloom by Pela Newcastle',
+    seoDescription: 'Authentic Nigerian Zobo hibiscus tonic with fiery ginger, cloves, and pineapple.',
   },
   {
     id: 'prod-juice-ginger-shots',
-    name: 'Fiery Ginger Wellness Shots',
-    slug: 'fiery-ginger-wellness-shots',
+    name: 'Ginger shots',
+    slug: 'ginger-shots',
     type: 'juice',
-    category: 'Fresh Juices & Drinks',
+    category: 'Fresh juices and drinks',
     origin: 'UK Prepared',
     weightOrVolume: '60ml',
     description:
@@ -221,6 +245,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Raw Ginger Juice (80%)', 'Fresh Lemon Juice', 'Cayenne Pepper'],
     allergens: [],
     images: [
+      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Ginger_Shot',
       'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80',
     ],
     status: 'active',
@@ -228,6 +253,8 @@ export const INITIAL_PRODUCTS: Product[] = [
       { id: 'var-gs-single', name: 'Single 60ml Shot', pricePence: 250, sku: 'BBP-SHT-GS60', stock: 80, isDefault: true },
       { id: 'var-gs-pack6', name: 'Weekly 6-Pack (6 x 60ml)', pricePence: 1350, sku: 'BBP-SHT-GS6PK', stock: 35 },
     ],
+    seoTitle: 'Ginger shots | Bloom by Pela Newcastle',
+    seoDescription: 'Immune-boosting raw cold-pressed ginger shots with lemon and cayenne pepper.',
   },
 ];
 
@@ -237,7 +264,7 @@ export const INITIAL_BUNDLES: ProductBundle[] = [
     name: 'The Bloom Tasting Box',
     slug: 'the-bloom-tasting-box',
     description:
-      'The ultimate introduction to Bloom by Pela: 2 packs of Plantain Chips, 1 Coconut Chips, 1 Chin Chin, plus 2 Fresh Juices (Tropical Bloom & Zobo).',
+      'The ultimate introduction to Bloom by Pela: 2 packs of Plantain chips, 1 Coconut chips, 1 Chin chin, plus 2 Fresh juices and drinks (Tropical Bloom & Zobo).',
     pricePence: 2200,
     compareAtPricePence: 2600,
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',

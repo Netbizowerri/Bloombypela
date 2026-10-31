@@ -26,7 +26,7 @@ import { useToast } from '../context/ToastContext';
 import { motion } from 'motion/react';
 
 export const HomePage: React.FC = () => {
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { success } = useToast();
   const [howToOrderOpen, setHowToOrderOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'all' | 'snack' | 'juice'>('all');
@@ -67,10 +67,9 @@ export const HomePage: React.FC = () => {
           {/* ----------------- LEFT COLUMN: Punchy Headline & Actions ----------------- */}
           <div className="lg:col-span-4 text-left space-y-6 z-10">
             {/* Main Headline with multi-color emphasis */}
-            <h1 className="font-serif text-5xl sm:text-6xl lg:text-[4rem] font-black text-stone-900 tracking-[-0.03em] leading-[1.05]">
-              Fastest <br />
-              <span className="text-[#c9932b]">Delivery</span> &amp; <br />
-              Easy <span className="text-[#e57b32]">Pickup</span>
+            <h1 className="text-5xl sm:text-6xl lg:text-[4rem] font-medium text-stone-900 tracking-tight leading-[1.08]">
+              Fastest <span className="text-[#155d2c]">Delivery</span> &amp; <br />
+              Easy <span className="text-[#c9932b]">Pickup</span>
             </h1>
 
             {/* Avatar Social Proof Quote */}
@@ -163,11 +162,11 @@ export const HomePage: React.FC = () => {
 
               {/* Golden Sun Disk */}
               <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] rounded-full bg-gradient-to-tr from-[#f6c944] via-[#fbd760] to-[#f9cf48] shadow-2xl flex items-center justify-center overflow-hidden relative">
-                {/* Center Smiling Person enjoying food and juice */}
+                {/* Bloom by Pela Hero Showcase */}
                 <img
-                  src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=700&q=80"
-                  alt="Customer enjoying Bloom by Pela handcrafted juice"
-                  className="w-full h-full object-cover scale-105"
+                  src="https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela"
+                  alt="Bloom by Pela fresh juices and artisan snacks"
+                  className="w-full h-full object-cover"
                 />
 
                 {/* Floating Fresh Badge */}
@@ -318,17 +317,6 @@ export const HomePage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => setActiveCategory('juice')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeCategory === 'juice'
-                  ? 'bg-[#155d2c] text-white shadow-xs'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              Fresh Juices
-            </button>
-            <button
-              type="button"
               onClick={() => setActiveCategory('snack')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeCategory === 'snack'
@@ -336,7 +324,18 @@ export const HomePage: React.FC = () => {
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
-              Packaged Snacks
+              Snacks
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveCategory('juice')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeCategory === 'juice'
+                  ? 'bg-[#155d2c] text-white shadow-xs'
+                  : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              Fresh juices and drinks
             </button>
           </div>
         </div>
@@ -352,7 +351,11 @@ export const HomePage: React.FC = () => {
                 className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
-                  <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
+                  <Link
+                    to={`/product/${product.slug}`}
+                    className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
+                    title={`View ${product.name} details`}
+                  >
                     <img
                       src={product.images[0]}
                       alt={product.name}
@@ -363,16 +366,15 @@ export const HomePage: React.FC = () => {
                       <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-2xs border border-stone-200">
                         {product.weightOrVolume}
                       </span>
-                      <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-900/80 text-white shadow-2xs">
-                        {product.origin || (product.type === 'snack' ? 'Nigeria' : 'UK Prepared')}
-                      </span>
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="p-3 sm:p-6">
-                    <h3 className="font-serif text-xs sm:text-lg font-bold text-stone-900 line-clamp-1 group-hover:text-[#155d2c] transition-colors">
-                      {product.name}
-                    </h3>
+                    <Link to={`/product/${product.slug}`} className="block">
+                      <h3 className="font-serif text-xs sm:text-lg font-bold text-stone-900 line-clamp-1 group-hover:text-[#155d2c] transition-colors">
+                        {product.name}
+                      </h3>
+                    </Link>
                     <p className="text-[10px] sm:text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">
                       {product.shortDescription || product.description}
                     </p>
@@ -402,8 +404,10 @@ export const HomePage: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       addItem(product, defaultVariant, 1);
+                      openCart();
                       success('Added to basket', `${product.name} added.`);
                     }}
                     className="inline-flex items-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#155d2c] hover:bg-[#104923] active:scale-95 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"

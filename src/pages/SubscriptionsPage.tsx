@@ -16,11 +16,11 @@ export const SubscriptionsPage: React.FC = () => {
   const juices = INITIAL_PRODUCTS.filter((p) => p.type === 'juice');
   const [selectedPlanId, setSelectedPlanId] = useState<string>('sub-weekly-bloom-5');
   const [selectedFlavours, setSelectedFlavours] = useState<string[]>([
-    'Tropical Bloom Juice',
-    'Tropical Bloom Juice',
-    'Skin Glow Elixir',
-    'Artisan Zobo Hibiscus Tonic',
-    'Detox Green Juice Blend',
+    'Tropical Bloom',
+    'Tropical Bloom',
+    'Skin Glow/Skin Flow — final product name to be confirmed',
+    'Zobo',
+    'Detox juice blend',
   ]);
 
   const activePlan =

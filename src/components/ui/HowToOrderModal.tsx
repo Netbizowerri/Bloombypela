@@ -15,7 +15,7 @@ export const HowToOrderModal: React.FC<HowToOrderModalProps> = ({ isOpen, onClos
       step: '01',
       title: 'Choose Your Treats & Juices',
       description:
-        'Browse our authentic Nigerian snacks (Plantain chips, Chin Chin, Coconut crunch) or select your favourite cold-pressed wellness juices.',
+        'Browse our authentic Nigerian snacks (Plantain chips, Coconut chips, Chin chin, Groundnuts, Cashews) or select your favourite fresh juices and drinks.',
       icon: ShoppingBag,
       color: 'bg-emerald-50 text-[#155d2c] border-emerald-200',
     },

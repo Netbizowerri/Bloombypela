@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { INITIAL_PRODUCTS } from '../data/initialData';
 import { formatPence } from '../lib/utils';
 import { useCart } from '../context/CartContext';
@@ -8,7 +9,7 @@ import { Badge } from '../components/ui/Badge';
 import { Filter, Sparkles, Check, Plus } from 'lucide-react';
 
 export const ShopSnacksPage: React.FC = () => {
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { success } = useToast();
   const [selectedVariantId, setSelectedVariantId] = useState<Record<string, string>>({});
 
@@ -31,10 +32,10 @@ export const ShopSnacksPage: React.FC = () => {
           Life in Every Bite
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
-          Artisan Packaged Snacks
+          Snacks
         </h1>
         <p className="text-xs sm:text-sm text-stone-600 mt-2 max-w-2xl leading-relaxed">
-          Authentic Nigerian flavours sourced with integrity. Plantain chips kettle-cooked to crisp perfection, roasted coconut curls, crunchy nutmeg chin chin, and seasoned peanuts.
+          Authentic Nigerian snacks sourced with integrity: Plantain chips kettle-cooked to crisp perfection, delicate Coconut chips, crunchy Chin chin, sand-roasted Groundnuts, and wholesome Cashews.
         </p>
       </div>
 
@@ -49,7 +50,11 @@ export const ShopSnacksPage: React.FC = () => {
               className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
             >
               <div>
-                <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
+                <Link
+                  to={`/product/${snack.slug}`}
+                  className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
+                  title={`View ${snack.name} details`}
+                >
                   <img
                     src={snack.images[0]}
                     alt={snack.name}
@@ -60,14 +65,15 @@ export const ShopSnacksPage: React.FC = () => {
                     <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-2xs border border-stone-200">
                       {snack.weightOrVolume}
                     </span>
-                    <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#deb252] text-stone-900 shadow-2xs">
-                      Origin: {snack.origin}
-                    </span>
                   </div>
-                </div>
+                </Link>
 
                 <div className="p-3 sm:p-6">
-                  <h3 className="font-serif text-xs sm:text-xl font-bold text-stone-900 line-clamp-1">{snack.name}</h3>
+                  <Link to={`/product/${snack.slug}`} className="block">
+                    <h3 className="font-serif text-xs sm:text-xl font-bold text-stone-900 line-clamp-1 hover:text-[#155d2c] transition-colors">
+                      {snack.name}
+                    </h3>
+                  </Link>
                   <p className="text-[10px] sm:text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">{snack.description}</p>
 
                   {/* Variant Selection Buttons */}
@@ -83,7 +89,7 @@ export const ShopSnacksPage: React.FC = () => {
                             key={v.id}
                             type="button"
                             onClick={() => handleSelectVariant(snack.id, v.id)}
-                            className={`p-1.5 sm:p-2.5 rounded-lg border text-[10px] sm:text-xs text-left transition-all ${
+                            className={`p-1.5 sm:p-2.5 rounded-lg border text-[10px] sm:text-xs text-left transition-all cursor-pointer ${
                               isSelected
                                 ? 'border-[#155d2c] bg-[#e2f0e6] text-[#155d2c] font-semibold ring-1 ring-[#155d2c]'
                                 : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
@@ -120,8 +126,10 @@ export const ShopSnacksPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     addItem(snack, activeVariant, 1);
+                    openCart();
                     success('Added to basket', `${snack.name} (${activeVariant.name}) added.`);
                   }}
                   className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#155d2c] hover:bg-[#104923] active:scale-95 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"

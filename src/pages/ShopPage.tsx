@@ -21,7 +21,7 @@ import { Product, ProductVariant } from '../types/products';
 
 export const ShopPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { success } = useToast();
 
   // State from URL query or defaults
@@ -35,8 +35,8 @@ export const ShopPage: React.FC = () => {
 
   const categories = [
     { id: 'all', label: 'All Items', icon: Sparkles },
-    { id: 'juice', label: 'Cold-Pressed Juices', icon: UtensilsCrossed },
-    { id: 'snack', label: 'Artisan Snacks', icon: Package },
+    { id: 'snack', label: 'Snacks', icon: Package },
+    { id: 'juice', label: 'Fresh juices and drinks', icon: UtensilsCrossed },
   ];
 
   const dietaryOptions = [
@@ -318,8 +318,12 @@ export const ShopPage: React.FC = () => {
                 className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
-                  {/* Image & Badges */}
-                  <div className="relative aspect-4/3 sm:aspect-square overflow-hidden bg-stone-100">
+                  {/* Image & Badges: Clicking image navigates to product page */}
+                  <Link
+                    to={`/product/${product.slug}`}
+                    className="block relative aspect-4/3 sm:aspect-square overflow-hidden bg-stone-100 cursor-pointer"
+                    title={`View ${product.name} details`}
+                  >
                     <img
                       src={product.images[0]}
                       alt={product.name}
@@ -330,19 +334,16 @@ export const ShopPage: React.FC = () => {
                       <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-2xs border border-stone-200">
                         {product.weightOrVolume}
                       </span>
-                      {product.origin && (
-                        <span className="hidden sm:inline-block text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-900/80 text-white shadow-2xs">
-                          {product.origin}
-                        </span>
-                      )}
                     </div>
-                  </div>
+                  </Link>
 
                   {/* Product Details */}
                   <div className="p-3 sm:p-5">
-                    <h3 className="font-serif text-xs sm:text-base font-bold text-stone-900 line-clamp-1 group-hover:text-[#155d2c] transition-colors">
-                      {product.name}
-                    </h3>
+                    <Link to={`/product/${product.slug}`} className="block">
+                      <h3 className="font-serif text-xs sm:text-base font-bold text-stone-900 line-clamp-1 group-hover:text-[#155d2c] transition-colors">
+                        {product.name}
+                      </h3>
+                    </Link>
                     <p className="text-[10px] sm:text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">
                       {product.shortDescription || product.description}
                     </p>
@@ -361,7 +362,7 @@ export const ShopPage: React.FC = () => {
                                 key={v.id}
                                 type="button"
                                 onClick={() => handleSelectVariant(product.id, v.id)}
-                                className={`px-1.5 py-1 rounded text-[9px] sm:text-[10px] font-medium border text-center transition-colors truncate ${
+                                className={`px-1.5 py-1 rounded text-[9px] sm:text-[10px] font-medium border text-center transition-colors truncate cursor-pointer ${
                                   isSelected
                                     ? 'bg-[#155d2c]/10 text-[#155d2c] border-[#155d2c] font-bold'
                                     : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
@@ -390,8 +391,10 @@ export const ShopPage: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       addItem(product, activeVariant, 1);
+                      openCart();
                       success('Added to basket', `${product.name} (${activeVariant.name}) added.`);
                     }}
                     className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-[#155d2c] hover:bg-[#104923] active:scale-95 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"

@@ -9,7 +9,7 @@ import { Calendar, ShieldAlert, Sparkles, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const ShopJuicesPage: React.FC = () => {
-  const { addItem } = useCart();
+  const { addItem, openCart } = useCart();
   const { success } = useToast();
   const [selectedVariantId, setSelectedVariantId] = useState<Record<string, string>>({});
 
@@ -33,10 +33,10 @@ export const ShopJuicesPage: React.FC = () => {
             Life in Every Sip
           </span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
-            Fresh Bespoke Juices & Tonics
+            Fresh juices and drinks
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-2 max-w-2xl leading-relaxed">
-            Raw, cold-pressed, and never heat-pasteurised. Crafted weekly in Newcastle upon Tyne with whole tropical fruits, roots, and botanicals.
+            Raw, cold-pressed, and never heat-pasteurised. Crafted weekly in Newcastle upon Tyne: Tropical Bloom, Skin Glow/Skin Flow, Detox juice blend, Zobo, and Ginger shots.
           </p>
         </div>
 
@@ -67,7 +67,11 @@ export const ShopJuicesPage: React.FC = () => {
               className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
             >
               <div>
-                <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
+                <Link
+                  to={`/product/${juice.slug}`}
+                  className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
+                  title={`View ${juice.name} details`}
+                >
                   <img
                     src={juice.images[0]}
                     alt={juice.name}
@@ -78,14 +82,15 @@ export const ShopJuicesPage: React.FC = () => {
                     <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-2xs border border-stone-200">
                       {juice.weightOrVolume}
                     </span>
-                    <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-900/80 text-white shadow-2xs">
-                      UK Prepared
-                    </span>
                   </div>
-                </div>
+                </Link>
 
                 <div className="p-3 sm:p-6">
-                  <h3 className="font-serif text-xs sm:text-xl font-bold text-stone-900 line-clamp-1">{juice.name}</h3>
+                  <Link to={`/product/${juice.slug}`} className="block">
+                    <h3 className="font-serif text-xs sm:text-xl font-bold text-stone-900 line-clamp-1 hover:text-[#155d2c] transition-colors">
+                      {juice.name}
+                    </h3>
+                  </Link>
                   <p className="text-[10px] sm:text-xs text-stone-500 mt-1 line-clamp-2 leading-relaxed">{juice.description}</p>
 
                   {/* Variant Selection Buttons */}
@@ -101,7 +106,7 @@ export const ShopJuicesPage: React.FC = () => {
                             key={v.id}
                             type="button"
                             onClick={() => handleSelectVariant(juice.id, v.id)}
-                            className={`p-1.5 sm:p-2.5 rounded-lg border text-[10px] sm:text-xs text-left transition-all ${
+                            className={`p-1.5 sm:p-2.5 rounded-lg border text-[10px] sm:text-xs text-left transition-all cursor-pointer ${
                               isSelected
                                 ? 'border-[#155d2c] bg-[#e2f0e6] text-[#155d2c] font-semibold ring-1 ring-[#155d2c]'
                                 : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
@@ -147,8 +152,10 @@ export const ShopJuicesPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     addItem(juice, activeVariant, 1);
+                    openCart();
                     success('Added to basket', `${juice.name} (${activeVariant.name}) added.`);
                   }}
                   className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#155d2c] hover:bg-[#104923] active:scale-95 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all cursor-pointer shrink-0"

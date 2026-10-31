@@ -44,7 +44,7 @@ export const AdminDashboard: React.FC = () => {
     {
       title: 'Low Stock Alert',
       value: '1 Product Low',
-      subtext: 'Toasted Coconut Chips (15 left)',
+      subtext: 'Coconut chips (15 left)',
       icon: AlertCircle,
       color: 'text-rose-600',
       bg: 'bg-rose-50',
@@ -56,7 +56,7 @@ export const AdminDashboard: React.FC = () => {
       id: 'BBP-ORD-8923',
       customer: 'Eleanor Vance',
       area: 'NE2 (Jesmond)',
-      items: 'Weekly Bloom 5 + Plantain Chips',
+      items: 'Weekly Bloom 5 + Plantain chips',
       totalPence: 2300,
       status: 'Preparing',
     },

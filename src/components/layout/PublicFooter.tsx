@@ -35,7 +35,7 @@ export const PublicFooter: React.FC = () => {
             </span>
             <h4 className="font-serif text-lg font-semibold text-white">Life in Every Bite</h4>
             <p className="text-xs text-stone-300 max-w-xs leading-relaxed">
-              Authentic plantain chips, coconut crunch, chin chin, and seasoned groundnuts sourced from premium Nigerian smallholders.
+              Authentic Plantain chips, Coconut chips, Chin chin, Groundnuts, and Cashews sourced from trusted smallholders.
             </p>
           </div>
 
@@ -45,7 +45,7 @@ export const PublicFooter: React.FC = () => {
             </span>
             <h4 className="font-serif text-lg font-semibold text-white">Life in Every Sip</h4>
             <p className="text-xs text-stone-300 max-w-xs leading-relaxed">
-              Small-batch cold-pressed juices and tonics (Tropical Bloom, Skin Glow, Zobo, Detox Blend) freshly prepared in the UK.
+              Small-batch cold-pressed fresh juices and drinks (Tropical Bloom, Skin Glow/Skin Flow, Detox juice blend, Zobo, Ginger shots) freshly prepared in the UK.
             </p>
           </div>
 
@@ -71,12 +71,12 @@ export const PublicFooter: React.FC = () => {
             <ul className="space-y-2 text-xs text-stone-300">
               <li>
                 <Link to="/shop/snacks" className="hover:text-gold-200 transition-colors">
-                  Packaged Snacks ("Life in Every Bite")
+                  Snacks ("Life in Every Bite")
                 </Link>
               </li>
               <li>
                 <Link to="/shop/juices" className="hover:text-gold-200 transition-colors">
-                  Fresh Juices ("Life in Every Sip")
+                  Fresh juices and drinks ("Life in Every Sip")
                 </Link>
               </li>
               <li>

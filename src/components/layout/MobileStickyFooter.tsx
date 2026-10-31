@@ -25,7 +25,7 @@ export const MobileStickyFooter: React.FC = () => {
 
   const categories = [
     {
-      title: 'Packaged Snacks',
+      title: 'Snacks',
       subtitle: 'Life in Every Bite • Nigerian sourced',
       to: '/shop/snacks',
       icon: Package,
@@ -33,7 +33,7 @@ export const MobileStickyFooter: React.FC = () => {
       badge: 'Artisan',
     },
     {
-      title: 'Cold-Pressed Juices',
+      title: 'Fresh juices and drinks',
       subtitle: 'Life in Every Sip • UK Prepared',
       to: '/shop/juices',
       icon: UtensilsCrossed,
