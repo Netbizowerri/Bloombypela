@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:functions": "npm --prefix functions run build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "seed": "tsx scripts/seed.ts",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "lint": "tsc --noEmit && tsc -p scripts/tsconfig.json --noEmit && npm --prefix functions run lint",
     "emulators": "npm run build:functions && firebase emulators:start --only auth,firestore,functions,hosting",
@@ -15,7 +17,9 @@
     "set-role": "tsx scripts/set-role.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^6.0.2",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.105.0",
     "@vitejs/plugin-react": "^6.1.1",
     "clsx": "^2.1.1",
     "firebase": "^13.1.0",
@@ -23,9 +27,11 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-hook-form": "^7.91.0",
     "react-router-dom": "^7.18.5",
     "tailwind-merge": "^3.7.0",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -36,6 +42,7 @@
     "firebase-admin": "^14.5.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   }
 }

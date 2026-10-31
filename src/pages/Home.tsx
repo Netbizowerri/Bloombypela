@@ -15,14 +15,20 @@ import {
   Clock,
   Heart,
   Plus,
+  AlertCircle,
+  RefreshCw,
+  PackageOpen,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { HowToOrderModal } from '../components/ui/HowToOrderModal';
-import { INITIAL_PRODUCTS, INITIAL_SUBSCRIPTION_PLANS, INITIAL_DELIVERY_AREAS } from '../data/initialData';
 import { formatPence } from '../lib/utils';
+import { cld } from '../lib/cld';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
+import { useProducts } from '../features/catalogue';
 import { motion } from 'motion/react';
 
 export const HomePage: React.FC = () => {
@@ -33,10 +39,30 @@ export const HomePage: React.FC = () => {
   const [postcodeCheck, setPostcodeCheck] = useState('');
   const [postcodeResult, setPostcodeResult] = useState<{ eligible: boolean; area?: string } | null>(null);
 
-  const filteredProducts = INITIAL_PRODUCTS.filter((p) => {
-    if (activeCategory === 'all') return true;
-    return p.type === activeCategory;
+  const { data: products = [], isLoading, isError, error } = useProducts({
+    type: activeCategory === 'all' ? undefined : activeCategory,
   });
+
+  if (isLoading) return <PageLoader />;
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load the menu
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">
+          {error?.message ?? 'Failed to load'}
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#155d2c] text-white font-medium hover:bg-[#104923] transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Try again
+        </button>
+      </div>
+    );
+  }
 
   const handlePostcodeCheck = (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,27 +367,35 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Product Cards Grid: 2 Columns on Mobile, 2 on Tablet, 3 on Desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
-          {filteredProducts.map((product) => {
-            const defaultVariant = product.variants[0];
+        {products.length === 0 ? (
+          <EmptyState
+            icon={PackageOpen}
+            title="No treats right now"
+            description="The weekly drop has sold out or hasn't landed yet. Check back soon."
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
+            {products.map((product) => {
+              const defaultVariant = product.variants[0];
+              const featureImage = product.images[0];
 
-            return (
-              <div
-                key={product.id}
-                className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  <Link
-                    to={`/product/${product.slug}`}
-                    className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
-                    title={`View ${product.name} details`}
-                  >
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
+              return (
+                <div
+                  key={product.id}
+                  className="group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-stone-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <Link
+                      to={`/product/${product.slug}`}
+                      className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
+                      title={`View ${product.name} details`}
+                    >
+                      <img
+                        src={featureImage ? cld(featureImage.url, 800) : ''}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
                     <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1">
                       <span className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-2xs border border-stone-200">
                         {product.weightOrVolume}
@@ -420,6 +454,7 @@ export const HomePage: React.FC = () => {
             );
           })}
         </div>
+        )}
       </section>
 
       {/* =========================================================================

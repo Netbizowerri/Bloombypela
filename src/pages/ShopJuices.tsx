@@ -1,19 +1,41 @@
 import React, { useState } from 'react';
-import { INITIAL_PRODUCTS } from '../data/initialData';
+import { Link } from 'react-router-dom';
 import { formatPence } from '../lib/utils';
+import { cld } from '../lib/cld';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Calendar, ShieldAlert, Sparkles, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
+import { Calendar, ShieldAlert, Sparkles, Plus, PackageOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import { useProducts } from '../features/catalogue';
 
 export const ShopJuicesPage: React.FC = () => {
   const { addItem, openCart } = useCart();
   const { success } = useToast();
   const [selectedVariantId, setSelectedVariantId] = useState<Record<string, string>>({});
 
-  const juices = INITIAL_PRODUCTS.filter((p) => p.type === 'juice');
+  const { data: juices = [], isLoading, isError, error } = useProducts({ type: 'juice' });
+
+  if (isLoading) return <PageLoader />;
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load the menu
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {error?.message ?? 'Failed to load'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#155d2c] text-white font-medium hover:bg-[#104923] transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Try again
+        </button>
+      </div>
+    );
+  }
 
   const getActiveVariant = (product: typeof juices[0]) => {
     const currentId = selectedVariantId[product.id];
@@ -57,9 +79,17 @@ export const ShopJuicesPage: React.FC = () => {
       </div>
 
       {/* Grid of Juices (2 Columns on Mobile, 2 on Tablet, 3 on Desktop) */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
-        {juices.map((juice) => {
-          const activeVariant = getActiveVariant(juice);
+        {juices.length === 0 ? (
+          <EmptyState
+            icon={PackageOpen}
+            title="No juices right now"
+            description="The juice drop hasn't landed yet. Check back soon."
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
+            {juices.map((juice) => {
+              const activeVariant = getActiveVariant(juice);
+              const featureImage = juice.images[0];
 
           return (
             <div
@@ -73,7 +103,7 @@ export const ShopJuicesPage: React.FC = () => {
                   title={`View ${juice.name} details`}
                 >
                   <img
-                    src={juice.images[0]}
+                    src={featureImage ? cld(featureImage.url, 800) : ''}
                     alt={juice.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
@@ -165,9 +195,10 @@ export const ShopJuicesPage: React.FC = () => {
                 </button>
               </div>
             </div>
-          );
+          )
         })}
       </div>
-    </div>
+    )}
+  </div>
   );
 };

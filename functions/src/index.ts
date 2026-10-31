@@ -5,6 +5,13 @@ import { z } from 'zod';
 import { requireAuth } from './lib/auth';
 import { ALLOWED_ORIGINS, REGION } from './lib/config';
 import { fromZodError } from './lib/errors';
+export {
+  createProduct,
+  duplicateProduct,
+  getUploadSignature,
+  softDeleteProduct,
+  updateProduct,
+} from './catalogue';
 
 // Applied to every function in this codebase unless a function overrides it.
 setGlobalOptions({ region: REGION });

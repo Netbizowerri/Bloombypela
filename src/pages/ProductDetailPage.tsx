@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { INITIAL_PRODUCTS } from '../data/initialData';
 import { formatPence } from '../lib/utils';
+import { cld } from '../lib/cld';
 import { useCart } from '../context/CartContext';
+import { PageLoader } from '../components/ui/PageLoader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { useProduct, useProducts } from '../features/catalogue';
 import { useToast } from '../context/ToastContext';
 import {
   ChevronRight,
@@ -25,7 +28,29 @@ export const ProductDetailPage: React.FC = () => {
   const { addItem, openCart } = useCart();
   const { success, info } = useToast();
 
-  const product = INITIAL_PRODUCTS.find((p) => p.slug === slug || p.id === slug);
+  const { data: product, isLoading, isError, error } = useProduct(slug);
+  const { data: sameCategory = [] } = useProducts({
+    category: product?.category,
+  });
+
+  if (isLoading) return <PageLoader />;
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load the product
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {error?.message ?? 'Failed to load'}</p>
+        <Link
+          to="/shop"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#155d2c] text-white font-medium hover:bg-[#104923] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Browse All Treats
+        </Link>
+      </div>
+    );
+  }
 
   // Fallback to first variant if product exists
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
@@ -89,10 +114,8 @@ export const ProductDetailPage: React.FC = () => {
     }
   };
 
-  // Related products from the same category or all
-  const relatedProducts = INITIAL_PRODUCTS.filter(
-    (p) => p.id !== product.id && p.category === product.category
-  ).slice(0, 3);
+  // Related products from the same category
+  const relatedProducts = sameCategory.filter((p) => p.id !== product.id).slice(0, 3);
 
   const categoryPath = product.type === 'snack' ? '/shop/snacks' : '/shop/juices';
 
@@ -121,29 +144,34 @@ export const ProductDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
         {/* Left Column: Product Gallery */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative aspect-4/3 sm:aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs group">
-            <img
-              src={product.images[activeImageIndex] || product.images[0]}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            {/* Badges on main image */}
-            <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-xs border border-stone-200">
-                {product.weightOrVolume}
-              </span>
-            </div>
+          {(() => {
+            const feature = product.images[activeImageIndex] ?? product.images[0];
+            return (
+              <div className="relative aspect-4/3 sm:aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs group">
+                <img
+                  src={feature ? cld(feature.url, 900) : ''}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {/* Badges on main image */}
+                <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[#155d2c] shadow-xs border border-stone-200">
+                    {product.weightOrVolume}
+                  </span>
+                </div>
 
-            <button
-              type="button"
-              onClick={handleShare}
-              className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-stone-900 shadow-xs border border-stone-200 transition-all cursor-pointer"
-              title="Share product"
-              aria-label="Share product"
-            >
-              {copied ? <Check className="w-4 h-4 text-[#155d2c]" /> : <Share2 className="w-4 h-4" />}
-            </button>
-          </div>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="absolute top-3 right-3 p-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-stone-900 shadow-xs border border-stone-200 transition-all cursor-pointer"
+                  title="Share product"
+                  aria-label="Share product"
+                >
+                  {copied ? <Check className="w-4 h-4 text-[#155d2c]" /> : <Share2 className="w-4 h-4" />}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Thumbnail Gallery (if more than 1 image) */}
           {product.images.length > 1 && (
@@ -160,7 +188,7 @@ export const ProductDetailPage: React.FC = () => {
                   }`}
                 >
                   <img
-                    src={img}
+                    src={cld(img.url, 320)}
                     alt={`${product.name} preview ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
@@ -412,6 +440,7 @@ export const ProductDetailPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {relatedProducts.map((relProduct) => {
               const relDefaultVariant = relProduct.variants[0];
+              const relFeatureImage = relProduct.images[0];
 
               return (
                 <div
@@ -425,7 +454,7 @@ export const ProductDetailPage: React.FC = () => {
                       className="block relative aspect-4/3 overflow-hidden bg-stone-100 cursor-pointer"
                     >
                       <img
-                        src={relProduct.images[0]}
+                        src={relFeatureImage ? cld(relFeatureImage.url, 600) : ''}
                         alt={relProduct.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         loading="lazy"

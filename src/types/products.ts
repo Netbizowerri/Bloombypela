@@ -3,6 +3,16 @@ import { UKAllergen } from '../lib/utils';
 export type ProductType = 'snack' | 'juice';
 export type ProductStatus = 'active' | 'hidden' | 'seasonal';
 
+/**
+ * A single image asset stored on a product.
+ * `url` is the Cloudinary secure_url (render through `cld()` for transformations);
+ * `publicId` is the Cloudinary public_id (empty for externally hosted images).
+ */
+export interface ImageAsset {
+  url: string;
+  publicId: string;
+}
+
 export interface ProductVariant {
   id: string;
   name: string; // e.g. "100g Pouch", "250g Jar", "250ml Bottle", "500ml Bottle"
@@ -23,10 +33,10 @@ export interface Product {
   ingredients: string[];
   allergens: UKAllergen[];
   weightOrVolume: string; // e.g., "150g", "330ml"
-  images: string[];
+  images: ImageAsset[];
   status: ProductStatus;
-  seasonalStartDate?: string;
-  seasonalEndDate?: string;
+  seasonalStartDate?: string; // YYYY-MM-DD (Europe/London calendar date)
+  seasonalEndDate?: string; // YYYY-MM-DD (Europe/London calendar date)
   variants: ProductVariant[];
   seoTitle?: string;
   seoDescription?: string;

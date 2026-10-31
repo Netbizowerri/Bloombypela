@@ -1,9 +1,26 @@
 import React from 'react';
 import { UK_ALLERGENS } from '../lib/utils';
-import { INITIAL_PRODUCTS } from '../data/initialData';
-import { ShieldCheck, AlertTriangle } from 'lucide-react';
+import { PageLoader } from '../components/ui/PageLoader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ShieldCheck, AlertTriangle, AlertCircle } from 'lucide-react';
+import { useProducts } from '../features/catalogue';
 
 export const AllergensPage: React.FC = () => {
+  const { data: products = [], isLoading, isError, error } = useProducts();
+
+  if (isLoading) return <PageLoader />;
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load allergen information
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {error?.message ?? 'Failed to load'}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 text-left">
       <div className="border-b border-stone-200 pb-6">
@@ -29,44 +46,51 @@ export const AllergensPage: React.FC = () => {
       </div>
 
       {/* Product Allergen Matrix */}
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-stone-100">
-          <h3 className="font-serif text-lg font-bold text-stone-900">Catalogue Allergen Matrix</h3>
-        </div>
+      {products.length === 0 ? (
+        <EmptyState
+          title="No products in the catalogue"
+          description="There are no products to display allergen information for."
+        />
+      ) : (
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-stone-100">
+            <h3 className="font-serif text-lg font-bold text-stone-900">Catalogue Allergen Matrix</h3>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-stone-50 text-stone-700 font-semibold border-b border-stone-200 uppercase tracking-wider text-[11px]">
-              <tr>
-                <th className="py-3.5 px-6">Product</th>
-                <th className="py-3.5 px-6">Category</th>
-                <th className="py-3.5 px-6">Allergens Present</th>
-                <th className="py-3.5 px-6">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 text-stone-700">
-              {INITIAL_PRODUCTS.map((prod) => (
-                <tr key={prod.id} className="hover:bg-stone-50">
-                  <td className="py-3.5 px-6 font-bold text-stone-900">{prod.name}</td>
-                  <td className="py-3.5 px-6 font-medium text-stone-500 capitalize">{prod.type}</td>
-                  <td className="py-3.5 px-6">
-                    {prod.allergens.length === 0 ? (
-                      <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" /> None of the 14 allergens
-                      </span>
-                    ) : (
-                      <span className="text-amber-800 font-bold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 inline-block">
-                        {prod.allergens.join(', ')}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-6 text-stone-500">Declared on pack</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-stone-50 text-stone-700 font-semibold border-b border-stone-200 uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="py-3.5 px-6">Product</th>
+                  <th className="py-3.5 px-6">Category</th>
+                  <th className="py-3.5 px-6">Allergens Present</th>
+                  <th className="py-3.5 px-6">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-stone-100 text-stone-700">
+                {products.map((prod) => (
+                  <tr key={prod.id} className="hover:bg-stone-50">
+                    <td className="py-3.5 px-6 font-bold text-stone-900">{prod.name}</td>
+                    <td className="py-3.5 px-6 font-medium text-stone-500 capitalize">{prod.type}</td>
+                    <td className="py-3.5 px-6">
+                      {prod.allergens.length === 0 ? (
+                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                          <ShieldCheck className="h-3.5 w-3.5" /> None of the 14 allergens
+                        </span>
+                      ) : (
+                        <span className="text-amber-800 font-bold bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 inline-block">
+                          {prod.allergens.join(', ')}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-6 text-stone-500">Declared on pack</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* List of 14 Allergens */}
       <div className="bg-stone-50 rounded-2xl p-6 border border-stone-200 space-y-3">

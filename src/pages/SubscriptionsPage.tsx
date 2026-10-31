@@ -1,31 +1,55 @@
 import React, { useState } from 'react';
-import { INITIAL_SUBSCRIPTION_PLANS, INITIAL_PRODUCTS } from '../data/initialData';
+
 import { formatPence } from '../lib/utils';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Check, Calendar, RotateCcw, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
+import { Check, Calendar, RotateCcw, ShieldCheck, Sparkles, ArrowRight, AlertCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { usePlans, useProducts } from '../features/catalogue';
 
 export const SubscriptionsPage: React.FC = () => {
   const { user } = useAuth();
   const { success, info } = useToast();
   const navigate = useNavigate();
 
-  const juices = INITIAL_PRODUCTS.filter((p) => p.type === 'juice');
+  const { data: plans = [], isLoading: plansLoading, isError: plansError, error: plansErrorObj } =
+    usePlans();
+  const { data: juices = [], isLoading: juicesLoading } = useProducts({ type: 'juice' });
+  const isLoading = plansLoading || juicesLoading;
+
+  if (isLoading) return <PageLoader />;
+  if (plansError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load subscription plans
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {plansErrorObj?.message ?? 'Failed to load'}</p>
+      </div>
+    );
+  }
+  if (plans.length === 0) {
+    return (
+      <EmptyState
+        title="No subscription plans"
+        description="Subscription plans aren't available right now. Check back soon."
+      />
+    );
+  }
+
   const [selectedPlanId, setSelectedPlanId] = useState<string>('sub-weekly-bloom-5');
-  const [selectedFlavours, setSelectedFlavours] = useState<string[]>([
-    'Tropical Bloom',
-    'Tropical Bloom',
-    'Skin Glow',
-    'Zobo',
-    'Detox juice blend',
-  ]);
+  const [selectedFlavours, setSelectedFlavours] = useState<string[]>(() => {
+    const first = juices[0]?.name ?? '';
+    return Array.from({ length: 5 }, () => first);
+  });
 
   const activePlan =
-    INITIAL_SUBSCRIPTION_PLANS.find((p) => p.id === selectedPlanId) ||
-    INITIAL_SUBSCRIPTION_PLANS[0];
+    plans.find((p) => p.id === selectedPlanId) || plans[0];
 
   const handleFlavourToggle = (juiceName: string) => {
     if (selectedFlavours.length < activePlan.bottleCount) {
@@ -63,7 +87,7 @@ export const SubscriptionsPage: React.FC = () => {
 
       {/* Plan Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {INITIAL_SUBSCRIPTION_PLANS.map((plan) => {
+        {plans.map((plan) => {
           const isSelected = plan.id === selectedPlanId;
 
           return (

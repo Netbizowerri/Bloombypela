@@ -19,64 +19,48 @@ export const AdminDashboard: React.FC = () => {
   const kpis = [
     {
       title: 'Upcoming Thursday Delivery',
-      value: '28 Orders',
-      subtext: 'Next batch: 30 Oct 2026',
+      value: '0 Orders',
+      subtext: 'No deliveries scheduled yet.',
       icon: Truck,
       color: 'text-[#7e2b44]',
       bg: 'bg-[#fbf4f5]',
     },
     {
       title: 'Active Weekly Subscribers',
-      value: '42 Subscribers',
-      subtext: '£680.00 / week recurring MRR',
+      value: '0 Subscribers',
+      subtext: '£0.00 / week recurring MRR',
       icon: RotateCcw,
       color: 'text-[#cb932b]',
       bg: 'bg-[#fbf8ed]',
     },
     {
       title: 'This Week Juice Capacity',
-      value: '185 / 250 Units',
-      subtext: '74% capacity reserved',
+      value: '0 / 0 Units',
+      subtext: 'No capacity reserved yet.',
       icon: Calendar,
       color: 'text-[#245840]',
       bg: 'bg-[#f3f8f5]',
     },
     {
       title: 'Low Stock Alert',
-      value: '1 Product Low',
-      subtext: 'Coconut chips (15 left)',
+      value: '0 Products Low',
+      subtext: 'All stock levels nominal.',
       icon: AlertCircle,
       color: 'text-rose-600',
       bg: 'bg-rose-50',
     },
   ];
 
-  const recentOrders = [
-    {
-      id: 'BBP-ORD-8923',
-      customer: 'Eleanor Vance',
-      area: 'NE2 (Jesmond)',
-      items: 'Weekly Bloom 5 + Plantain chips',
-      totalPence: 2300,
-      status: 'Preparing',
-    },
-    {
-      id: 'BBP-ORD-8922',
-      customer: 'David Taylor',
-      area: 'NE1 (City Centre)',
-      items: 'Tropical Bloom (330ml) x 3',
-      totalPence: 1350,
-      status: 'Preparing',
-    },
-    {
-      id: 'BBP-ORD-8921',
-      customer: 'Sarah Jenkins',
-      area: 'NE3 (Gosforth)',
-      items: 'Tasting Box + Ginger Shots (6-pk)',
-      totalPence: 3550,
-      status: 'Out for delivery',
-    },
-  ];
+  type RecentOrder = {
+    id: string;
+    customer: string;
+    area: string;
+    items: string;
+    totalPence: number;
+    status: string;
+  };
+
+  const recentOrders: RecentOrder[] = [];
 
   return (
     <div className="space-y-8 text-left">

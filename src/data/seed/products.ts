@@ -1,7 +1,8 @@
-import { Product, SubscriptionPlan, ProductBundle } from '../types/products';
-import { DeliveryArea } from '../types/cart';
+// PLACEHOLDER: Seed catalogue content. Replace with real products before launch;
+// every image URL and piece of copy here is placeholder material.
+import type { Product } from '../../types/products';
 
-export const INITIAL_PRODUCTS: Product[] = [
+export const SEED_PRODUCTS: Product[] = [
   // 1. SNACKS (Life in Every Bite) - Sourced from Nigeria
   {
     id: 'prod-snack-plantain-chips',
@@ -17,8 +18,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Selected Green Plantains', 'Sustainable Sunflower Oil', 'Fine Sea Salt'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Plantain_Chips',
-      'https://images.unsplash.com/photo-1621996346565-e3d5d62816dd?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Plantain_Chips', publicId: 'Bloombypela_Plantain_Chips' },
+      { url: 'https://images.unsplash.com/photo-1621996346565-e3d5d62816dd?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     isPopular: true,
@@ -43,8 +44,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Pure Coconut Flesh', 'Unrefined Cane Sugar', 'Natural Vanilla Extract', 'Sea Salt'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Coconut_Chips',
-      'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Coconut_Chips', publicId: 'Bloombypela_Coconut_Chips' },
+      { url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     isPopular: true,
@@ -69,8 +70,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Wheat Flour', 'Pure Butter', 'Sugar', 'Eggs', 'Whole Milk', 'Nutmeg', 'Baking Powder', 'Salt'],
     allergens: ['Cereals containing gluten', 'Eggs', 'Milk'],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Chinchin',
-      'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Chinchin', publicId: 'Bloombypela_Chinchin' },
+      { url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     variants: [
@@ -94,8 +95,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Selected Peanuts (Groundnuts)', 'Fine Sea Salt'],
     allergens: ['Peanuts'],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Groundnut',
-      'https://images.unsplash.com/photo-1567894340315-735d7c361db0?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Groundnut', publicId: 'Bloombypela_Groundnut' },
+      { url: 'https://images.unsplash.com/photo-1567894340315-735d7c361db0?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     variants: [
@@ -118,8 +119,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Whole Cashew Nuts', 'Cold-Pressed Peanut Oil', 'Sea Salt'],
     allergens: ['Tree nuts', 'Peanuts'],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Cashew',
-      'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Cashew', publicId: 'Bloombypela_Cashew' },
+      { url: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     variants: [
@@ -128,8 +129,6 @@ export const INITIAL_PRODUCTS: Product[] = [
     seoTitle: 'Cashews | Bloom by Pela Newcastle',
     seoDescription: 'Hand-selected whole roasted jumbo cashews toasted with sea salt.',
   },
-
-  // 2. FRESH JUICES AND DRINKS (Life in Every Sip) - Prepared Fresh in UK
   {
     id: 'prod-juice-tropical-bloom',
     name: 'Tropical Bloom',
@@ -144,8 +143,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Mango Puree', 'Fresh Pineapple Juice', 'Passion Fruit', 'Fresh Orange', 'Raw Ginger Root'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Tropical_Bloom',
-      'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Tropical_Bloom', publicId: 'Bloombypela_Tropical_Bloom' },
+      { url: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     isPopular: true,
@@ -173,8 +172,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Organic Carrots', 'Red Apples', 'Fresh Orange', 'Raw Turmeric', 'Lemon Juice'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Skin_Glow',
-      'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Skin_Glow', publicId: 'Bloombypela_Skin_Glow' },
+      { url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     isPopular: true,
@@ -198,8 +197,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Cucumber', 'Celery', 'Green Apples', 'Spinach', 'Lime', 'Garden Mint'],
     allergens: ['Celery'],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Detox_Blend',
-      'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Detox_Blend', publicId: 'Bloombypela_Detox_Blend' },
+      { url: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     variants: [
@@ -222,8 +221,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Nigerian Dried Hibiscus Flowers', 'Pineapple Rind Infusion', 'Ginger Root', 'Cloves', 'Cinnamon Stick'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Zobo',
-      'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Zobo', publicId: 'Bloombypela_Zobo' },
+      { url: 'https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     isPopular: true,
@@ -248,8 +247,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     ingredients: ['Raw Ginger Juice (80%)', 'Fresh Lemon Juice', 'Cayenne Pepper'],
     allergens: [],
     images: [
-      'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Ginger_Shot',
-      'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80',
+      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Ginger_Shot', publicId: 'Bloombypela_Ginger_Shot' },
+      { url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80', publicId: '' },
     ],
     status: 'active',
     variants: [
@@ -259,62 +258,4 @@ export const INITIAL_PRODUCTS: Product[] = [
     seoTitle: 'Ginger shots | Bloom by Pela Newcastle',
     seoDescription: 'Immune-boosting raw cold-pressed ginger shots with lemon and cayenne pepper.',
   },
-];
-
-export const INITIAL_BUNDLES: ProductBundle[] = [
-  {
-    id: 'bundle-tasting-box',
-    name: 'The Bloom Tasting Box',
-    slug: 'the-bloom-tasting-box',
-    description:
-      'The ultimate introduction to Bloom by Pela: 2 packs of Plantain chips, 1 Coconut chips, 1 Chin chin, plus 2 Fresh juices and drinks (Tropical Bloom & Zobo).',
-    pricePence: 2200,
-    compareAtPricePence: 2600,
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-    productIds: ['prod-snack-plantain-chips', 'prod-snack-coconut-chips', 'prod-juice-tropical-bloom', 'prod-juice-zobo'],
-    status: 'active',
-  },
-];
-
-export const INITIAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  {
-    id: 'sub-weekly-bloom-3',
-    name: 'Weekly Bloom 3',
-    bottleCount: 3,
-    pricePence: 1250, // £12.50 / week
-    frequency: 'weekly',
-    description: '3 bespoke 330ml cold-pressed juices delivered fresh every Thursday to your doorstep in Newcastle.',
-    features: [
-      'Choose your 3 favourite flavours each week',
-      'Free Thursday local delivery included',
-      'Skip or pause anytime before Monday 12:00 cut-off',
-      'Guaranteed juice capacity reservation',
-    ],
-    isPopular: false,
-  },
-  {
-    id: 'sub-weekly-bloom-5',
-    name: 'Weekly Bloom 5 (Full Workweek)',
-    bottleCount: 5,
-    pricePence: 1950, // £19.50 / week (Save £3.00)
-    frequency: 'weekly',
-    description: '5 cold-pressed wellness juices for everyday nourishing vitality throughout your work week.',
-    features: [
-      '5 bottles of your choice per week',
-      'Free Thursday Newcastle delivery',
-      '1 complimentary Ginger Wellness Shot with every delivery',
-      'Pause or cancel anytime in 2 clicks',
-    ],
-    isPopular: true,
-  },
-];
-
-export const INITIAL_DELIVERY_AREAS: DeliveryArea[] = [
-  { id: 'da-ne1', outwardCode: 'NE1', areaName: 'Newcastle City Centre', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne2', outwardCode: 'NE2', areaName: 'Jesmond', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne3', outwardCode: 'NE3', areaName: 'Gosforth', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne4', outwardCode: 'NE4', areaName: 'Arthur\'s Hill, Fenham', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne6', outwardCode: 'NE6', areaName: 'Heaton, Byker, Walker', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne7', outwardCode: 'NE7', areaName: 'High Heaton, Benton', feePence: 350, minimumOrderPence: 1200, freeDeliveryThresholdPence: 3000, isActive: true },
-  { id: 'da-ne8', outwardCode: 'NE8', areaName: 'Gateshead Central', feePence: 400, minimumOrderPence: 1500, freeDeliveryThresholdPence: 3500, isActive: true },
 ];

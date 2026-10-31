@@ -1,5 +1,5 @@
 import React from 'react';
-import { INITIAL_DELIVERY_AREAS } from '../data/initialData';
+import { SEED_DELIVERY_AREAS } from '../data/seed/deliveryAreas';
 import { formatPence } from '../lib/utils';
 import { Truck, Clock, MapPin, AlertCircle, Calendar } from 'lucide-react';
 
@@ -68,7 +68,7 @@ export const DeliveryInfoPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 text-stone-600">
-              {INITIAL_DELIVERY_AREAS.map((area) => (
+              {SEED_DELIVERY_AREAS.map((area) => (
                 <tr key={area.id} className="hover:bg-stone-50">
                   <td className="py-3.5 px-6 font-bold text-[#7e2b44]">{area.outwardCode}</td>
                   <td className="py-3.5 px-6 font-medium text-stone-800">{area.areaName}</td>

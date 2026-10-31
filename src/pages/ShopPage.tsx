@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { INITIAL_PRODUCTS } from '../data/initialData';
 import { formatPence } from '../lib/utils';
+import { cld } from '../lib/cld';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { Badge } from '../components/ui/Badge';
+import { PageLoader } from '../components/ui/PageLoader';
+import { useProducts } from '../features/catalogue';
 import {
   Search,
   SlidersHorizontal,
@@ -16,6 +18,8 @@ import {
   Calendar,
   Package,
   UtensilsCrossed,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Product, ProductVariant } from '../types/products';
 
@@ -39,6 +43,30 @@ export const ShopPage: React.FC = () => {
   const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [selectedVariantId, setSelectedVariantId] = useState<Record<string, string>>({});
+
+  const typeFilter =
+    selectedCategory === 'snack' || selectedCategory === 'juice' ? selectedCategory : undefined;
+
+  const { data: products = [], isLoading, isError, error } = useProducts({ type: typeFilter });
+
+  if (isLoading) return <PageLoader />;
+  if (isError) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-stone-400" />
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
+          Couldn't load the menu
+        </h1>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {error?.message ?? 'Failed to load'}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#155d2c] text-white font-medium hover:bg-[#104923] transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Try again
+        </button>
+      </div>
+    );
+  }
 
   const categories = [
     { id: 'all', label: 'All Items', icon: Sparkles },
@@ -78,12 +106,7 @@ export const ShopPage: React.FC = () => {
 
   // Filtered & Sorted Products
   const filteredProducts = useMemo(() => {
-    let result = [...INITIAL_PRODUCTS];
-
-    // Category
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.type === selectedCategory);
-    }
+    let result = [...products];
 
     // Search query
     if (searchQuery.trim()) {
@@ -318,6 +341,7 @@ export const ShopPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {filteredProducts.map((product) => {
             const activeVariant = getActiveVariant(product);
+            const featureImage = product.images[0];
 
             return (
               <div
@@ -332,7 +356,7 @@ export const ShopPage: React.FC = () => {
                     title={`View ${product.name} details`}
                   >
                     <img
-                      src={product.images[0]}
+                      src={featureImage ? cld(featureImage.url, 800) : ''}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { INITIAL_DELIVERY_AREAS } from '../../data/initialData';
+import { SEED_DELIVERY_AREAS } from '../../data/seed/deliveryAreas';
 import { formatPence } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { Plus, Edit, Truck, Clock, ShieldCheck } from 'lucide-react';
 
 export const AdminDeliverySettings: React.FC = () => {
-  const [areas, setAreas] = useState(INITIAL_DELIVERY_AREAS);
+  const [areas, setAreas] = useState(SEED_DELIVERY_AREAS);
   const { success } = useToast();
 
   const toggleArea = (id: string) => {

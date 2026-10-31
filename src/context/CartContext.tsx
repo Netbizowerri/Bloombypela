@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { CartItem, StoredCartItem } from '../types/cart';
 import { Product, ProductVariant } from '../types/products';
-import { INITIAL_PRODUCTS } from '../data/initialData';
+import { SEED_PRODUCTS } from '../data/seed';
 
 interface CartContextType {
   items: CartItem[];
@@ -88,7 +88,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const items = useMemo<CartItem[]>(() => {
     return storedItems.reduce<CartItem[]>((resolved, stored) => {
-      const product = INITIAL_PRODUCTS.find((candidate) => candidate.id === stored.productId);
+      const product = SEED_PRODUCTS.find((candidate) => candidate.id === stored.productId);
       if (!product) return resolved;
 
       const variant = product.variants.find((candidate) => candidate.id === stored.variantId);
