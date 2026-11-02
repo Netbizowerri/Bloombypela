@@ -1,4 +1,4 @@
-import { UKAllergen } from '../lib/utils';
+import type { UKAllergen } from '../lib/utils.js';
 
 export type ProductType = 'snack' | 'juice';
 export type ProductStatus = 'active' | 'hidden' | 'seasonal';

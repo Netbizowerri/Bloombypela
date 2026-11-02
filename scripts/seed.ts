@@ -88,7 +88,7 @@ async function main(): Promise<void> {
   const db = getFirestore(app) as Firestore;
   const batch = db.batch();
 
-  const collections: Array<[string, Record<string, unknown>[]]> = [
+  const collections: Array<[string, unknown[]]> = [
     ['products', SEED_PRODUCTS],
     ['categories', SEED_CATEGORIES],
     ['bundles', SEED_BUNDLES],
@@ -107,7 +107,10 @@ async function main(): Promise<void> {
   for (const [collectionName, docs] of collections) {
     for (const doc of docs) {
       const { id, ...data } = doc as { id: string };
-      batch.set(db.collection(collectionName).doc(id), stripUndefined(data));
+      batch.set(
+        db.collection(collectionName).doc(id),
+        stripUndefined(data) as Record<string, unknown>,
+      );
       count += 1;
     }
   }

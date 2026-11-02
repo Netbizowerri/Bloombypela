@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { formatPence } from '../../lib/utils';
+import { cld } from '../../lib/cld';
 import { Button } from '../ui/Button';
 import { Link } from 'react-router-dom';
 
@@ -203,7 +204,11 @@ export const CartDrawer: React.FC = () => {
                       {/* Product Thumbnail */}
                       <div className="relative shrink-0">
                         <img
-                          src={item.product.images[0] || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=200&q=80'}
+                          src={
+                            item.product.images[0]
+                              ? cld(item.product.images[0].url, 200)
+                              : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=200&q=80'
+                          }
                           alt={item.product.name}
                           className="h-20 w-20 sm:h-22 sm:w-22 object-cover rounded-xl border border-stone-200/90 bg-stone-100 shadow-2xs"
                         />
