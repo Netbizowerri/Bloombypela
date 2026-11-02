@@ -85,7 +85,8 @@ the rewrite:
   and only the allowed profile fields. `stripeCustomerId`, roles and all order,
   subscription, delivery, capacity, promotion-usage and audit writes are
   server-only.
-- `stripeEvents` and `reservations` are never readable or writable by clients.
+- `stripeEvents`, `reservations`, `stockHolds` and `counters` are never readable
+  or writable by clients.
 - Firebase Storage is deny-all because images are hosted on Cloudinary.
 
 ## Tests
@@ -95,7 +96,8 @@ npm run test:rules
 ```
 
 This starts the Firestore emulator with `firebase emulators:exec` and runs the
-Vitest suite in `functions/test/rules.test.ts` against `firestore.rules`. Java 21+
+Vitest suites in `functions/test/` against `firestore.rules` and the checkout
+flow (pricing, reservations, webhook idempotency, expiry and refunds). Java 21+
 must be on `PATH`.
 
 Type checking:
@@ -105,6 +107,109 @@ npm run lint              # app + scripts + functions (tsc --noEmit)
 npm run build             # app production build
 npm run build:functions   # functions compile to functions/lib
 ```
+
+## Payments (Stripe)
+
+The browser never decides prices. `createCheckoutSession` re-prices the basket
+from Firestore, writes a 15-minute `reservations` hold (snack stock and juice
+capacity) in a transaction, and only then creates a Stripe Checkout Session.
+Orders are created **only** by the signature-verified `stripeWebhook`; the
+success page just polls `getOrderBySession` and never confirms anything.
+
+### Secrets and endpoints
+
+Two secrets are read through `defineSecret` and must never be committed:
+
+```bash
+firebase functions:secrets:set STRIPE_SECRET_KEY      # sk_test_... / sk_live_...
+firebase functions:secrets:set STRIPE_WEBHOOK_SECRET  # whsec_...
+```
+
+Non-secret configuration (the public site URL used for Stripe redirects) lives
+in `functions/.env.bloombypela`:
+
+```
+APP_URL=https://bloombypela.com
+```
+
+Register the deployed webhook in the Stripe dashboard with endpoint
+`https://europe-west2-<project-id>.cloudfunctions.net/stripeWebhook` and these
+events:
+
+- `checkout.session.completed`
+- `checkout.session.async_payment_succeeded`
+- `checkout.session.async_payment_failed`
+- `checkout.session.expired`
+- `charge.refunded`
+
+Delayed payment methods (for example bank debits) finish the session before the
+money clears. Those sessions arrive as `checkout.session.completed` with
+`payment_status: "unpaid"`; the hold is kept and the order is only created when
+`checkout.session.async_payment_succeeded` reports `payment_status: "paid"`.
+`checkout.session.async_payment_failed` releases the hold so nothing is held for
+a payment that never cleared.
+
+Payment method types are intentionally not hardcoded, so Stripe uses the
+automatic payment methods enabled in the dashboard (card, Apple Pay, Google Pay).
+
+### Local testing with the Stripe CLI
+
+1. Start the emulators (`npm run emulators`). The Functions emulator exposes
+   `stripeWebhook` at:
+   `http://127.0.0.1:5001/bloom-by-pela-placeholder/europe-west2/stripeWebhook`
+2. Create `functions/.secret.local` (git-ignored) with your **test** key. Run
+   `stripe listen` once, copy the printed `whsec_...`, and add it:
+
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+3. Forward Stripe events to the emulator:
+
+   ```bash
+   stripe listen --forward-to http://127.0.0.1:5001/bloom-by-pela-placeholder/europe-west2/stripeWebhook
+   ```
+
+4. With `npm run dev` running, add items to the basket and pay on the Stripe
+   page with a test card.
+
+Test cards:
+
+| Card number           | Behaviour                          |
+| --------------------- | ---------------------------------- |
+| `4242 4242 4242 4242` | Payment succeeds                   |
+| `4000 0025 0000 3155` | Succeeds after 3D Secure challenge |
+| `4000 0000 0000 9995` | Declined (insufficient funds)      |
+
+Use any future expiry date, any 3-digit CVC and any UK postcode.
+
+### Idempotency check
+
+After a successful payment the `stripe listen` console prints the event id
+(`evt_...`) and the webhook returns 200. Replay the same event:
+
+```bash
+stripe events resend evt_xxxxxxxxxxxx
+```
+
+The second delivery is acknowledged with `{"duplicate":true}` and **no** second
+order is created: the event id is recorded in `stripeEvents` in the same
+transaction that writes the order and decrements stock.
+
+### Refunds
+
+Refund a payment in the Stripe dashboard (test mode) or with
+`stripe refunds create --payment-intent pi_...`. The `charge.refunded` webhook
+sets the order to `partially_refunded` or `refunded` and records
+`refundedPence`. Stock is not restocked automatically.
+
+### Abandoned checkouts
+
+Holds expire after 15 minutes. `releaseExpiredReservations` runs every 5
+minutes, closes the Stripe session first, then releases the holds. A session
+that Stripe reports as already complete is never released, so a slow webhook
+cannot lose a paid order.
 
 ## Granting admin
 

@@ -33,6 +33,7 @@ export interface DateCapacity {
   date: string; // YYYY-MM-DD
   juiceCapacity: number; // max juice bottles for this date
   juiceReserved: number; // bottles already reserved by subscribers
+  juiceHeld?: number; // bottles held by open checkouts (server-managed)
   subscriberShare: number; // bottles reserved by subscription plans
   closed: boolean;
 }

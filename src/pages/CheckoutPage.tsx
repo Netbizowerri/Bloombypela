@@ -10,8 +10,8 @@
  *  6. Order summary with server-computed quote via quoteCart callable
  *
  * All pricing is computed server-side by quoteCart. Client-supplied prices
- * are ignored. The pay button is present but disabled ("Payment coming in
- * next section").
+ * are ignored. Paying calls createCheckoutSession, which re-prices the basket
+ * again, holds stock, and redirects to Stripe-hosted Checkout.
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
@@ -40,12 +40,14 @@ import { Badge } from '../components/ui/Badge';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { EmptyState } from '../components/ui/EmptyState';
 import { deliveryApi } from '../lib/delivery';
+import { checkoutApi } from '../lib/checkout';
 import type { CartItem } from '../types/cart';
 import type { Product } from '../types/products';
 
 type Fulfilment = 'delivery' | 'collection';
 
 type CheckoutForm = {
+  contactName: string;
   contactEmail: string;
   contactPhone: string;
   fulfilment: Fulfilment;
@@ -60,6 +62,7 @@ type CheckoutForm = {
 };
 
 const EMPTY_FORM: CheckoutForm = {
+  contactName: '',
   contactEmail: '',
   contactPhone: '',
   fulfilment: 'delivery',
@@ -100,6 +103,7 @@ export const CheckoutPage: React.FC = () => {
 
   const [form, setForm] = useState<CheckoutForm>(() => ({
     ...EMPTY_FORM,
+    contactName: user?.name ?? '',
     contactEmail: user?.email ?? '',
     contactPhone: user?.phone ?? '',
   }));
@@ -111,6 +115,8 @@ export const CheckoutPage: React.FC = () => {
   const [dateError, setDateError] = useState<string | null>(null);
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [loading, setLoading] = useState<Set<string>>(new Set());
 
   const isStepLoading = (key: string) => loading.has(key);
@@ -120,6 +126,7 @@ export const CheckoutPage: React.FC = () => {
     if (user) {
       setForm((prev) => ({
         ...prev,
+        contactName: prev.contactName || user.name,
         contactEmail: prev.contactEmail || user.email,
         contactPhone: (prev.contactPhone || user.phone) ?? '',
       }));
@@ -231,6 +238,7 @@ export const CheckoutPage: React.FC = () => {
 
   const canProceed = useMemo(() => {
     if (items.length === 0) return false;
+    if (form.contactName.trim().length < 2) return false;
     if (!form.contactEmail || !form.contactPhone) return false;
     if (form.fulfilment === 'delivery') {
       if (!form.addressLine1 || !form.addressCity || !form.addressPostcode) return false;
@@ -239,12 +247,63 @@ export const CheckoutPage: React.FC = () => {
     }
     if (!form.terms) return false;
     return true;
-  }, [items.length, form.contactEmail, form.contactPhone, form.fulfilment, form.addressLine1, form.addressCity, form.addressPostcode, postcodeChecked, hasJuices, form.deliveryDate, availableDates.length, form.terms]);
+  }, [items.length, form.contactName, form.contactEmail, form.contactPhone, form.fulfilment, form.addressLine1, form.addressCity, form.addressPostcode, postcodeChecked, hasJuices, form.deliveryDate, availableDates.length, form.terms]);
 
   const isQuoteStale = useMemo(() => {
     if (!quote) return true;
     return false;
   }, [quote, items, form.fulfilment, form.addressPostcode, form.deliveryDate, form.promoCode]);
+
+  const handlePay = useCallback(async () => {
+    if (paying) return;
+    if (!canProceed) {
+      setPayError('Please complete all required details before paying.');
+      return;
+    }
+
+    setPaying(true);
+    setPayError(null);
+
+    try {
+      const response = await checkoutApi.createCheckoutSession({
+        items: items.map((item) => ({
+          productId: item.product.id,
+          variantId: item.variant.id,
+          quantity: item.quantity,
+        })),
+        contact: {
+          name: form.contactName.trim(),
+          email: form.contactEmail.trim(),
+          phone: form.contactPhone.trim(),
+        },
+        fulfilment: form.fulfilment,
+        address:
+          form.fulfilment === 'delivery'
+            ? {
+                line1: form.addressLine1.trim(),
+                line2: form.addressLine2.trim() || null,
+                city: form.addressCity.trim(),
+                postcode: form.addressPostcode.trim(),
+              }
+            : null,
+        deliveryDate: form.fulfilment === 'delivery' ? form.deliveryDate : null,
+        notes: form.orderNotes.trim() || undefined,
+        promoCode: form.promoCode.trim() || undefined,
+      });
+
+      // Prices, totals and stock are already revalidated server-side. Send the
+      // customer to Stripe-hosted Checkout; the cart is only cleared once the
+      // verified webhook has created the order on the success page.
+      window.location.assign(response.data.url);
+    } catch (err) {
+      setPayError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to start payment. Please try again.',
+      );
+      setPaying(false);
+    }
+  }, [paying, canProceed, items, form]);
 
   // Empty cart guard
   if (items.length === 0) {
@@ -309,7 +368,14 @@ export const CheckoutPage: React.FC = () => {
           <span className="font-semibold text-[#155d2c]">Final price confirmed at payment.</span>
         </p>
 
-        <form noValidate className="space-y-8 max-w-4xl mx-auto">
+        <form
+          noValidate
+          className="space-y-8 max-w-4xl mx-auto"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handlePay();
+          }}
+        >
           {/* Section 1: Contact */}
           <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
             <h2 className="font-serif text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
@@ -317,6 +383,20 @@ export const CheckoutPage: React.FC = () => {
               Contact details
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Full name"
+                type="text"
+                autoComplete="name"
+                value={form.contactName}
+                onChange={(e) => setField('contactName', e.target.value)}
+                error={
+                  form.contactName.length > 0 && form.contactName.trim().length < 2
+                    ? 'Please enter your full name'
+                    : !form.contactName
+                      ? 'Name is required'
+                      : undefined
+                }
+              />
               <Input
                 label="Email address"
                 type="email"
@@ -640,20 +720,30 @@ export const CheckoutPage: React.FC = () => {
                 Payment
               </p>
               <Button
+                type="submit"
                 variant="primary"
                 size="md"
                 className="w-full"
-                disabled={!canProceed || isQuoteStale}
-                isLoading={isStepLoading('quote')}
+                disabled={!canProceed || isQuoteStale || paying}
+                isLoading={paying}
               >
-                {!canProceed
-                  ? 'Complete details to continue'
-                  : isQuoteStale
-                    ? 'Updating quote…'
-                    : 'Pay now — payment coming in next section'}
+                {paying
+                  ? 'Redirecting to secure payment…'
+                  : !canProceed
+                    ? 'Complete details to continue'
+                    : isQuoteStale
+                      ? 'Updating quote…'
+                      : 'Pay securely'}
               </Button>
+              {payError && (
+                <p className="mt-3 text-xs text-red-600" role="alert">
+                  <AlertTriangle className="h-3 w-3 inline mr-1" aria-hidden="true" />
+                  {payError}
+                </p>
+              )}
               <p className="mt-2 text-[10px] text-stone-500 text-center">
-                The pay button is disabled. Stripe integration arrives in the next section.
+                You will be redirected to Stripe to pay by card, Apple Pay or Google Pay.
+                Your order is confirmed only after Stripe confirms payment.
               </p>
             </div>
           </section>

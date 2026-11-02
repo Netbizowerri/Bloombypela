@@ -54,6 +54,15 @@ const AccountPage = lazy(() =>
 const CheckoutPage = lazy(() =>
   import('./pages/CheckoutPage').then((module) => ({ default: module.CheckoutPage }))
 );
+const CheckoutSuccessPage = lazy(() =>
+  import('./pages/CheckoutSuccessPage').then((module) => ({ default: module.CheckoutSuccessPage }))
+);
+const CheckoutCancelPage = lazy(() =>
+  import('./pages/CheckoutCancelPage').then((module) => ({ default: module.CheckoutCancelPage }))
+);
+const OrderLookupPage = lazy(() =>
+  import('./pages/OrderLookupPage').then((module) => ({ default: module.OrderLookupPage }))
+);
 
 // Admin Pages (lazy: separate admin chunks)
 const AdminDashboard = lazy(() =>
@@ -75,6 +84,9 @@ const AdminDeliverySettings = lazy(() =>
 );
 const AdminCapacity = lazy(() =>
   import('./pages/admin/AdminCapacity').then((module) => ({ default: module.AdminCapacity }))
+);
+const AdminAudit = lazy(() =>
+  import('./pages/admin/AdminAudit').then((module) => ({ default: module.AdminAudit }))
 );
 const AdminPromotions = lazy(() =>
   import('./pages/admin/AdminPromotions').then((module) => ({ default: module.AdminPromotions }))
@@ -98,6 +110,9 @@ export default function App() {
                   <Route path="/product/:slug" element={<ProductDetailPage />} />
                   <Route path="/subscriptions" element={<SubscriptionsPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+                  <Route path="/checkout/cancel" element={<CheckoutCancelPage />} />
+                  <Route path="/orders/track" element={<OrderLookupPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/delivery" element={<DeliveryInfoPage />} />
                   <Route path="/allergens" element={<AllergensPage />} />
@@ -138,7 +153,7 @@ export default function App() {
                   <Route path="delivery" element={<AdminDeliverySettings />} />
                   <Route path="capacity" element={<AdminCapacity />} />
                   <Route path="promotions" element={<AdminPromotions />} />
-                  <Route path="audit" element={<AdminDashboard />} />
+                  <Route path="audit" element={<AdminAudit />} />
                 </Route>
 
                 {/* 404 Catch-All */}

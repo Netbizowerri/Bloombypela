@@ -88,7 +88,7 @@ export function getAvailableDates(
         cursor = cursor.plus({ days: 1 });
         continue;
       }
-      if (cap && cap.juiceReserved >= cap.juiceCapacity) {
+      if (cap && cap.juiceReserved + (cap.juiceHeld ?? 0) >= cap.juiceCapacity) {
         cursor = cursor.plus({ days: 1 });
         continue;
       }

@@ -188,6 +188,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /stockHolds/{productId} {
+      allow read, write: if false;
+    }
+
+    match /counters/{counterId} {
+      allow read, write: if false;
+    }
+
     // ---------------------------------------------------------------------
     // Explicit default deny for every other path
     // ---------------------------------------------------------------------

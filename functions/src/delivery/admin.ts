@@ -235,7 +235,7 @@ export const upsertDateCapacity = onCall(
       subscriberShare: fields.subscriberShare,
       closed: fields.closed,
     };
-    await db.collection('dateCapacity').doc(date).set(capacity);
+    await db.collection('dateCapacity').doc(date).set(capacity, { merge: true });
     await writeAuditLog(db, identity, 'upsert', 'dateCapacity', date, {
       juiceCapacity: fields.juiceCapacity,
       closed: fields.closed,

@@ -23,8 +23,8 @@ export interface QuoteLine {
 /**
  * The result of computing a quote.
  */
-export interface QuoteResult {
-  lines: QuoteLine[];
+export interface QuoteResult<TLine extends QuoteLine = QuoteLine> {
+  lines: TLine[];
   subtotalPence: number;
   deliveryFeePence: number;
   discountPence: number;
@@ -48,12 +48,12 @@ export interface QuoteResult {
  * @param subtotalPence - IGNORED (recomputed from lines server-side)
  * @returns QuoteResult
  */
-export function computeQuoteCore(
-  lines: QuoteLine[],
+export function computeQuoteCore<TLine extends QuoteLine>(
+  lines: TLine[],
   deliveryFeePence: number,
   promotion: Promotion | null,
   warnings: string[]
-): QuoteResult {
+): QuoteResult<TLine> {
   // Recompute subtotal from server-loaded prices (ignore client subtotal)
   let subtotalPence = 0;
   for (const line of lines) {
