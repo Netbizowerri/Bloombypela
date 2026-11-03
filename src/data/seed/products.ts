@@ -1,6 +1,21 @@
 // PLACEHOLDER: Seed catalogue content. Replace with real products before launch;
 // every image URL and piece of copy here is placeholder material.
-import type { Product } from '../../types/products.js';
+import type { ImageAsset, Product } from '../../types/products.js';
+
+// Owner-supplied photos for the three Groundnut pack sizes. Prices below are
+// PLACEHOLDER values and must be confirmed by the owner before launch.
+const GROUNDNUT_280G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_280g.jpg',
+  publicId: 'Groundnut_280g',
+};
+const GROUNDNUT_320G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_320g.jpg',
+  publicId: 'Groundnut_320g',
+};
+const GROUNDNUT_500G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_500g.jpg',
+  publicId: 'Groundnut_500g',
+};
 
 export const SEED_PRODUCTS: Product[] = [
   // 1. SNACKS (Life in Every Bite) - Sourced from Nigeria
@@ -88,22 +103,44 @@ export const SEED_PRODUCTS: Product[] = [
     type: 'snack',
     category: 'Snacks',
     origin: 'Nigeria',
-    weightOrVolume: '200g',
+    weightOrVolume: '280g–500g',
     description:
       'Classic West African sand-roasted peanuts with a deep nutty crunch and golden toastiness. A legendary accompaniment to drinks.',
     shortDescription: 'Traditional sand-roasted peanuts with rich nutty depth.',
     ingredients: ['Selected Peanuts (Groundnuts)', 'Fine Sea Salt'],
     allergens: ['Peanuts'],
-    images: [
-      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Groundnut', publicId: 'Bloombypela_Groundnut' },
-      { url: 'https://images.unsplash.com/photo-1567894340315-735d7c361db0?auto=format&fit=crop&w=800&q=80', publicId: '' },
-    ],
+    images: [GROUNDNUT_280G_IMAGE, GROUNDNUT_320G_IMAGE, GROUNDNUT_500G_IMAGE],
     status: 'active',
     variants: [
-      { id: 'var-gn-200', name: '200g Pouch', pricePence: 300, sku: 'BBP-SNK-GN200', stock: 40, isDefault: true },
+      {
+        id: 'var-gn-280',
+        name: '280g Pouch',
+        pricePence: 380,
+        sku: 'BBP-SNK-GN280',
+        stock: 40,
+        isDefault: true,
+        image: GROUNDNUT_280G_IMAGE,
+      },
+      {
+        id: 'var-gn-320',
+        name: '320g Pouch',
+        pricePence: 430,
+        sku: 'BBP-SNK-GN320',
+        stock: 30,
+        image: GROUNDNUT_320G_IMAGE,
+      },
+      {
+        id: 'var-gn-500',
+        name: '500g Pouch',
+        pricePence: 600,
+        sku: 'BBP-SNK-GN500',
+        stock: 18,
+        image: GROUNDNUT_500G_IMAGE,
+      },
     ],
     seoTitle: 'Groundnuts | Bloom by Pela Newcastle',
-    seoDescription: 'Classic sand-roasted Nigerian groundnuts with golden nutty crunch.',
+    seoDescription:
+      'Classic sand-roasted Nigerian groundnuts with golden nutty crunch, available in 280g, 320g and 500g pouches.',
   },
   {
     id: 'prod-snack-cashews',
