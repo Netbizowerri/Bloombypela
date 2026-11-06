@@ -75,6 +75,13 @@ function validateProduct(input: unknown): ProductInput {
   return parsed.data;
 }
 
+/** Firestore rejects undefined values unless ignoreUndefinedProperties is enabled. */
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T;
+}
+
 function writeAuditLog(
   db: FirebaseFirestore.Firestore,
   identity: { uid: string; email: string | null },
@@ -126,12 +133,12 @@ export const getUploadSignature = onCall(
  * Create a product (and an auditLog entry). Admin/staff only.
  */
 export const createProduct = onCall(
-  { secrets: [CLOUDINARY_API_SECRET], cors: ALLOWED_ORIGINS },
+  { cors: ALLOWED_ORIGINS },
   async (request) => {
     const identity = requireRole(request, ['admin', 'staff']);
     const input = validateProduct(request.data);
     const db = adminDb();
-    const product: Product = {
+    const product: Product = omitUndefined({
       id: input.id,
       name: input.name,
       slug: input.slug,
@@ -151,7 +158,7 @@ export const createProduct = onCall(
       seoDescription: input.seoDescription ?? undefined,
       isPopular: input.isPopular,
       origin: input.origin ?? undefined,
-    };
+    });
     await db.collection('products').doc(input.id).set(product);
     await writeAuditLog(
       db,
@@ -169,7 +176,7 @@ export const createProduct = onCall(
  * Update a product (and an auditLog entry). Admin/staff only.
  */
 export const updateProduct = onCall(
-  { secrets: [CLOUDINARY_API_SECRET], cors: ALLOWED_ORIGINS },
+  { cors: ALLOWED_ORIGINS },
   async (request) => {
     const identity = requireRole(request, ['admin', 'staff']);
     const input = validateProduct(request.data);
@@ -179,7 +186,7 @@ export const updateProduct = onCall(
     if (!snap.exists) throw new HttpsError('not-found', `Product ${input.id} not found.`);
     const previous = snap.data() as Partial<Product>;
     await ref.set(
-      {
+      omitUndefined({
         ...previous,
         name: input.name,
         slug: input.slug,
@@ -200,7 +207,7 @@ export const updateProduct = onCall(
         isPopular: input.isPopular,
         origin: input.origin ?? undefined,
         updatedAt: FieldValue.serverTimestamp(),
-      },
+      }),
       { merge: true },
     );
     await writeAuditLog(
@@ -220,7 +227,7 @@ export const updateProduct = onCall(
  * Admin/staff only.
  */
 export const softDeleteProduct = onCall(
-  { secrets: [CLOUDINARY_API_SECRET], cors: ALLOWED_ORIGINS },
+  { cors: ALLOWED_ORIGINS },
   async (request) => {
     const identity = requireRole(request, ['admin', 'staff']);
     const parsed = z.object({ id: z.string().trim().min(1) }).safeParse(request.data);
@@ -247,7 +254,7 @@ export const softDeleteProduct = onCall(
  * Admin/staff only.
  */
 export const duplicateProduct = onCall(
-  { secrets: [CLOUDINARY_API_SECRET], cors: ALLOWED_ORIGINS },
+  { cors: ALLOWED_ORIGINS },
   async (request) => {
     const identity = requireRole(request, ['admin', 'staff']);
     const parsed = z
@@ -260,13 +267,13 @@ export const duplicateProduct = onCall(
     const snap = await db.collection('products').doc(id).get();
     if (!snap.exists) throw new HttpsError('not-found', `Product ${id} not found.`);
     const existing = snap.data() as Product;
-    const dup: Product = {
+    const dup: Product = omitUndefined({
       ...existing,
       id: newId,
       slug: existing.slug + '-copy',
       name: existing.name + ' (Copy)',
       isPopular: undefined,
-    };
+    });
     await db.collection('products').doc(newId).set(dup);
     await writeAuditLog(db, identity, 'duplicate', 'product', newId, {
       sourceId: id,
