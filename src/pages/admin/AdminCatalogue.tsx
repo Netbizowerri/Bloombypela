@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState, useCallback, useRef } from 'react';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Copy, Eye, EyeOff, Edit, Upload, Image, RefreshCw } from 'lucide-react';
 import { formatPence } from '../../lib/utils';
-import { cld } from '../../lib/cld';
+import { cld, cloudinaryPublicId } from '../../lib/cld';
 import { UK_ALLERGENS } from '../../lib/utils';
+import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, PRODUCT_IMAGE_FOLDER } from '../../lib/cloudinary';
 import { useProducts } from '../../features/catalogue';
 import { callable } from '../../lib/functions';
 import { useToast } from '../../context/ToastContext';
@@ -45,6 +46,7 @@ type ClientVariant = {
   sku: string;
   stock: number;
   isDefault?: boolean;
+  image?: { url: string; publicId: string };
 };
 
 const createVariant = (): ClientVariant => ({
@@ -73,6 +75,11 @@ const AllergenSchema = z.enum([
   'Tree nuts',
 ]);
 
+/** A product can show up to three photos; the first one is the listing image. */
+const MAX_PRODUCT_IMAGES = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const ClientProductSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(200),
@@ -84,7 +91,9 @@ const ClientProductSchema = z.object({
   ingredients: z.array(z.string().min(1)).max(50),
   allergens: z.array(AllergenSchema),
   weightOrVolume: z.string().min(1).max(100),
-  images: z.array(z.object({ url: z.string().url(), publicId: z.string() })),
+  images: z
+    .array(z.object({ url: z.string().url(), publicId: z.string() }))
+    .max(MAX_PRODUCT_IMAGES, `A product can have up to ${MAX_PRODUCT_IMAGES} images.`),
   status: z.enum(['active', 'hidden', 'seasonal']),
   seasonalStartDate: z.string().optional().nullable(),
   seasonalEndDate: z.string().optional().nullable(),
@@ -96,6 +105,12 @@ const ClientProductSchema = z.object({
       sku: z.string().min(1),
       stock: z.number().int().nonnegative(),
       isDefault: z.boolean().optional(),
+      image: z
+        .object({
+          url: z.string().url(),
+          publicId: z.string(),
+        })
+        .optional(),
     }),
   ).min(1),
   seoTitle: z.string().max(200).optional().nullable(),
@@ -106,14 +121,49 @@ const ClientProductSchema = z.object({
 
 type ClientProductInput = z.infer<typeof ClientProductSchema>;
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-const getUploadSignature = callable<{}, { timestamp: number; signature: string; apiKey: string; cloudName: string }>('getUploadSignature');
 const createProductFn = callable<ClientProductInput, { ok: boolean; id: string }>('createProduct');
 const updateProductFn = callable<ClientProductInput & { id: string }, { ok: boolean; id: string }>('updateProduct');
 const softDeleteProductFn = callable<{ id: string }, { ok: boolean; id: string }>('softDeleteProduct');
 const duplicateProductFn = callable<{ id: string; newId: string }, { ok: boolean; id: string }>('duplicateProduct');
+
+/**
+ * Turns callable and Cloudinary failures into a message an admin can act on.
+ * Firebase prefixes callable errors with `functions/<code>`.
+ */
+function describeUploadError(err: unknown): string {
+  // Direct unsigned uploads to Cloudinary do not go through Cloud Functions,
+  // so there are no functions/<code> errors. Surface the underlying message.
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Could not upload the image. Try again.';
+}
+
+/** Turns a product save failure into a message an admin can act on. */
+function describeSaveError(err: unknown): string {
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code: unknown }).code)
+      : '';
+  const message =
+    err instanceof Error && err.message ? err.message : 'Could not save the product.';
+
+  switch (code) {
+    case 'functions/unauthenticated':
+      return 'Your session has expired. Sign in again and retry.';
+    case 'functions/permission-denied':
+      return 'This account does not have permission to save products.';
+    case 'functions/invalid-argument':
+      return message;
+    case 'functions/not-found':
+      return 'The product no longer exists. Refresh and try again.';
+    case 'functions/unavailable':
+    case 'functions/internal':
+      return `Save failed (server error). ${message}`;
+    default:
+      return message;
+  }
+}
 
 function defaultProduct(): ClientProductInput {
   return {
@@ -171,11 +221,21 @@ export const AdminCatalogue: React.FC = () => {
   const [editing, setEditing] = useState<ClientProduct | null>(null);
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
 
   const form = useForm<ClientProductInput>({
     resolver: zodResolver(ClientProductSchema),
     defaultValues: defaultProduct(),
   });
+
+  const images = useWatch({ control: form.control, name: 'images' }) ?? [];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  /**
+   * Public ids uploaded during the current edit session. Only these are safe
+   * to delete from Cloudinary: images already saved to a product may be shared
+   * with a duplicated product or used as a variant image.
+   */
+  const sessionUploads = useRef<Set<string>>(new Set());
 
   const { fields: variantFields, append, remove, move } = useFieldArray({
     control: form.control,
@@ -184,6 +244,7 @@ export const AdminCatalogue: React.FC = () => {
 
   const resetForm = useCallback(
     (product: ClientProduct | null) => {
+      setLinkUrl('');
       form.reset(product ? {
         ...product,
         id: product.id,
@@ -204,11 +265,14 @@ export const AdminCatalogue: React.FC = () => {
         await createProductFn(values);
         success('Product created', `${values.name} added to the catalogue.`);
       }
+      // The images now belong to the saved product, so they must not be cleaned up.
+      sessionUploads.current.clear();
+      setLinkUrl('');
       setOpen(false);
       setEditing(null);
       form.reset(defaultProduct());
     } catch (err) {
-      showError('Save failed', err instanceof Error ? err.message : 'Could not save the product.');
+      showError('Save failed', describeSaveError(err));
     }
   };
 
@@ -246,9 +310,31 @@ export const AdminCatalogue: React.FC = () => {
     }
   }, []);
 
+  /**
+   * Best-effort removal of images uploaded in this session but not saved.
+   * Orphaned Cloudinary assets are harmless, so failures are intentionally
+   * swallowed rather than blocking the admin from closing the form.
+   */
+  const discardSessionUploads = useCallback(() => {
+    // On the free Spark plan we cannot delete from Cloudinary without an API
+    // secret, so session uploads that are discarded simply become orphaned
+    // assets in Cloudinary. They are harmless and count only against storage.
+    sessionUploads.current.clear();
+  }, []);
+
+  const closeForm = useCallback(() => {
+    setLinkUrl('');
+    discardSessionUploads();
+    setOpen(false);
+    setEditing(null);
+  }, [discardSessionUploads]);
+
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Clear immediately so choosing the same file twice still fires onChange.
+    e.target.value = '';
     if (!file) return;
+
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
       showError('Unsupported file type', 'Please upload a JPEG, PNG or WEBP image.');
       return;
@@ -257,36 +343,129 @@ export const AdminCatalogue: React.FC = () => {
       showError('File too large', 'Images must be 5 MB or smaller.');
       return;
     }
+    if (images.length >= MAX_PRODUCT_IMAGES) {
+      showError(
+        'Image limit reached',
+        `A product can have up to ${MAX_PRODUCT_IMAGES} images. Remove one before adding another.`,
+      );
+      return;
+    }
+
     setUploading(true);
     try {
-      const { data } = await getUploadSignature({});
+      if (!CLOUDINARY_UPLOAD_PRESET) {
+        showError(
+          'Image upload not configured',
+          'Set VITE_CLOUDINARY_UPLOAD_PRESET in your environment variables and redeploy.',
+        );
+        return;
+      }
+
       const body = new FormData();
       body.append('file', file);
-      body.append('timestamp', String(data.timestamp));
-      body.append('signature', data.signature);
-      body.append('api_key', data.apiKey);
-      body.append('folder', 'bloom-by-pela');
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${data.cloudName}/image/upload`, {
-        method: 'POST',
-        body,
+      body.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      body.append('folder', PRODUCT_IMAGE_FOLDER);
+
+      const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body });
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        throw new Error(
+          payload?.error?.message
+            ? `Cloudinary rejected the upload: ${payload.error.message}`
+            : `Cloudinary rejected the upload (HTTP ${res.status}).`,
+        );
+      }
+
+      const uploaded = (await res.json()) as { secure_url?: string; public_id?: string };
+      if (!uploaded.secure_url || !uploaded.public_id) {
+        throw new Error('Cloudinary returned an unexpected response. Try again.');
+      }
+
+      const asset = { url: uploaded.secure_url, publicId: uploaded.public_id };
+      sessionUploads.current.add(asset.publicId);
+      form.setValue('images', [...(form.getValues('images') ?? []), asset], {
+        shouldDirty: true,
+        shouldValidate: true,
       });
-      if (!res.ok) throw new Error('Cloudinary upload failed.');
-      const json = await res.json();
-      const asset = { url: json.secure_url, publicId: json.public_id };
-      const current = (form.getValues('images') as { url: string; publicId: string }[] ?? []);
-      form.setValue('images', [...current, asset]);
       success('Image uploaded', 'Image added to the product.');
-      e.target.value = '';
     } catch (err) {
-      showError('Upload failed', err instanceof Error ? err.message : 'Could not upload image.');
+      showError('Upload failed', describeUploadError(err));
     } finally {
       setUploading(false);
     }
-  }, [form, getUploadSignature, showError, success]);
+  }, [form, images.length, showError, success]);
 
-  const removeImage = useCallback((index: number) => {
-    const current = (form.getValues('images') as { url: string; publicId: string }[] ?? []);
-    form.setValue('images', current.filter((_, i) => i !== index));
+  /** Pastes an existing Cloudinary image link into the product's images. */
+  const addImageLink = useCallback(() => {
+    if (images.length >= MAX_PRODUCT_IMAGES) {
+      showError(
+        'Image limit reached',
+        `A product can have up to ${MAX_PRODUCT_IMAGES} images. Remove one before adding another.`,
+      );
+      return;
+    }
+
+    let url = '';
+    let publicId = '';
+    try {
+      const parsed = new URL(linkUrl.trim());
+      if (parsed.protocol !== 'https:') {
+        throw new Error('Use an https:// URL.');
+      }
+      url = parsed.toString();
+      if (parsed.hostname.endsWith('res.cloudinary.com')) {
+        const extracted = cloudinaryPublicId(url);
+        if (!extracted) {
+          throw new Error("Couldn't read the public id from this Cloudinary URL.");
+        }
+        publicId = extracted;
+      }
+    } catch (err) {
+      showError(
+        'Invalid link',
+        err instanceof Error && err.message ? err.message : 'Paste a valid image URL.',
+      );
+      return;
+    }
+
+    const current = form.getValues('images') ?? [];
+    if (current.some((img) => img.url === url)) {
+      showError('Duplicate image', 'This image is already added to the product.');
+      return;
+    }
+
+    form.setValue('images', [...current, { url, publicId }], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setLinkUrl('');
+    success('Image link added', 'The Cloudinary image was added to the product.');
+  }, [form, images.length, linkUrl, showError, success]);
+
+  const removeImage = useCallback(async (index: number) => {
+    const current = form.getValues('images') ?? [];
+    const target = current[index];
+    if (!target) return;
+
+    form.setValue('images', current.filter((_, i) => i !== index), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+
+    // On the free Spark plan we cannot delete from Cloudinary without an API
+    // secret, so removed session images simply become orphaned assets. They
+    // are harmless and count only against storage.
+    if (!sessionUploads.current.has(target.publicId)) return;
+    sessionUploads.current.delete(target.publicId);
+  }, [form]);
+
+  const makePrimaryImage = useCallback((index: number) => {
+    const current = form.getValues('images') ?? [];
+    if (index <= 0 || index >= current.length) return;
+    const next = [current[index], ...current.filter((_, i) => i !== index)];
+    form.setValue('images', next, { shouldDirty: true, shouldValidate: true });
   }, [form]);
 
   if (isLoading) return <div className="py-10 text-center text-stone-500 text-xs">Loading catalogue…</div>;
@@ -451,7 +630,7 @@ export const AdminCatalogue: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
           <div
             className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
+            onClick={closeForm}
             aria-hidden="true"
           />
           <div className="relative bg-white rounded-3xl border border-stone-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
@@ -462,7 +641,7 @@ export const AdminCatalogue: React.FC = () => {
               <button
                 type="button"
                 className="p-2 text-stone-400 hover:text-stone-900 transition-colors"
-                onClick={() => setOpen(false)}
+                onClick={closeForm}
                 aria-label="Close"
               >
                 <span className="block text-stone-900">✕</span>
@@ -602,42 +781,106 @@ export const AdminCatalogue: React.FC = () => {
 
               {/* Images */}
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                     Images
                   </label>
-                  <span className="text-[10px] text-stone-400">JPEG, PNG, WEBP ≤ 5 MB</span>
+                  <span className="text-[10px] text-stone-400">
+                    {images.length}/{MAX_PRODUCT_IMAGES} used · JPEG, PNG, WEBP ≤ 5 MB
+                  </span>
                 </div>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageUpload}
-                  disabled={uploading || form.formState.isSubmitting}
+                  disabled={uploading || form.formState.isSubmitting || images.length >= MAX_PRODUCT_IMAGES}
                   className="sr-only"
+                  aria-label="Upload product image"
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading || form.formState.isSubmitting || images.length >= MAX_PRODUCT_IMAGES}
+                  className="inline-flex items-center gap-2 text-xs rounded-lg border border-stone-200 px-3 py-2 text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Upload className="h-3 w-3" />
+                  {uploading ? 'Uploading…' : 'Upload image'}
+                </button>
+                {/* Add an existing Cloudinary image by pasting its link */}
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && void addImageLink()}
+                    placeholder="Paste a Cloudinary image URL…"
+                    aria-label="Cloudinary image link"
+                    disabled={uploading || form.formState.isSubmitting || images.length >= MAX_PRODUCT_IMAGES}
+                    className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                  />
                   <button
                     type="button"
-                    onClick={() => (document.querySelector('input[type=file]') as HTMLInputElement | null)?.click()}
-                  disabled={uploading || form.formState.isSubmitting}
-                  className="inline-flex items-center gap-2 text-xs rounded-lg border border-stone-200 px-3 py-2 text-stone-600 hover:bg-stone-50 transition-colors"
-                >
-                  <Upload className="h-3 w-3" /> Upload image
-                </button>
-                {uploading && <span className="text-[10px] text-[#7e2b44] font-medium">Uploading…</span>}
-                <div className="flex flex-wrap gap-2">
-                  {(form.getValues('images') as { url: string; publicId: string }[] ?? []).map((img, i) => (
-                    <div key={i} className="relative group">
-                      <img src={cld(img.url, 40)} alt="" className="h-8 w-8 rounded object-cover" />
+                    onClick={addImageLink}
+                    disabled={
+                      uploading ||
+                      form.formState.isSubmitting ||
+                      images.length >= MAX_PRODUCT_IMAGES ||
+                      !linkUrl.trim()
+                    }
+                    className="inline-flex items-center gap-2 text-xs rounded-lg border border-stone-200 px-3 py-2 text-stone-600 hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Image className="h-3 w-3" />
+                    Add link
+                  </button>
+                </div>
+                {images.length >= MAX_PRODUCT_IMAGES && (
+                  <p className="text-[10px] text-stone-500">
+                    Maximum of {MAX_PRODUCT_IMAGES} images reached. Remove one to add another.
+                  </p>
+                )}
+                {form.formState.errors.images && (
+                  <p className="text-[10px] text-[#c93c3c]">{form.formState.errors.images.message}</p>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  {images.map((img, i) => (
+                    <div key={`${img.publicId || img.url}-${i}`} className="relative">
+                      <img
+                        src={cld(img.url, 96)}
+                        alt={`Product image ${i + 1}`}
+                        className="h-20 w-20 rounded-lg border border-stone-200 bg-stone-100 object-cover"
+                      />
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded bg-[#155d2c] px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          Main
+                        </span>
+                      )}
                       <button
                         type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 bg-white/90 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        aria-label="Remove image"
+                        onClick={() => void removeImage(i)}
+                        disabled={form.formState.isSubmitting}
+                        className="absolute -top-1.5 -right-1.5 rounded-full border border-stone-200 bg-white p-0.5 text-stone-500 shadow-sm hover:text-[#c93c3c] transition-colors disabled:opacity-50"
+                        aria-label={`Remove image ${i + 1}`}
                       >
-                        <span className="text-[9px] text-stone-600">✕</span>
+                        <span className="text-[10px]">✕</span>
                       </button>
+                      {i > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => makePrimaryImage(i)}
+                          disabled={form.formState.isSubmitting}
+                          className="mt-1 w-full text-[9px] text-[#7e2b44] underline underline-offset-2 hover:text-[#5a1f2e] disabled:opacity-50"
+                          aria-label={`Make image ${i + 1} the main image`}
+                        >
+                          Make main
+                        </button>
+                      )}
                     </div>
                   ))}
+                  {images.length === 0 && (
+                    <p className="text-[10px] text-stone-400">
+                      No images yet. The first image is used in listings.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -797,7 +1040,7 @@ export const AdminCatalogue: React.FC = () => {
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-stone-100">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={closeForm}
                   className="text-xs rounded-lg border border-stone-200 px-4 py-2 text-stone-600 hover:bg-stone-50 transition-colors"
                   disabled={form.formState.isSubmitting}
                 >
