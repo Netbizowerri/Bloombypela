@@ -11,6 +11,10 @@ export const REGION = 'europe-west2';
 export const ALLOWED_ORIGINS: (string | RegExp)[] = [
   'https://bloombypela.com',
   'https://www.bloombypela.com',
+  'https://bloombypela.web.app',
+  'https://www.bloombypela.web.app',
+  'https://bloombypela.firebaseapp.com',
+  'https://www.bloombypela.firebaseapp.com',
   /^https:\/\/bloombypela-[a-z0-9-]+\.web\.app$/,
   /^https:\/\/bloombypela-[a-z0-9-]+\.firebaseapp\.com$/,
   'http://localhost:3000',
