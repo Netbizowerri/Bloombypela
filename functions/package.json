@@ -1,7 +1,7 @@
 {
   "name": "bloom-by-pela-functions",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Cloud Functions (2nd gen) for Bloom by Pela",
   "main": "lib/index.js",
   "engines": {
