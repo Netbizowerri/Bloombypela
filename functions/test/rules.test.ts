@@ -8,9 +8,13 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
+  arrayUnion,
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  runTransaction,
+  serverTimestamp,
   setDoc,
   updateDoc,
   type Firestore,
@@ -94,14 +98,123 @@ describe('orders', () => {
     await assertSucceeds(getDoc(doc(dbFor(staff()), 'orders/order-2')));
   });
 
-  it('denies every client write, including the owner', async () => {
+  it('denies client creates and deletes', async () => {
     await seed('orders/order-1', { userId: 'customer-a', totalPence: 1500 });
 
     await assertFails(
       setDoc(doc(dbFor(customer()), 'orders/order-3'), { userId: 'customer-a', totalPence: 1 })
     );
     await assertFails(
-      updateDoc(doc(dbFor(customer()), 'orders/order-1'), { totalPence: 1 })
+      setDoc(doc(dbFor(staff()), 'orders/order-4'), { userId: 'customer-a', totalPence: 1 })
+    );
+    await assertFails(deleteDoc(doc(dbFor(admin()), 'orders/order-1')));
+  });
+
+  it('lets staff move an order through its status fields only', async () => {
+    await seed('orders/order-1', {
+      userId: 'customer-a',
+      totalPence: 1500,
+      status: 'confirmed',
+      statusHistory: [],
+    });
+
+    await assertSucceeds(
+      updateDoc(doc(dbFor(staff()), 'orders/order-1'), {
+        status: 'preparing',
+        statusHistory: [{ status: 'preparing', at: new Date(), note: 'picked' }],
+        internalNote: 'picked',
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  it('denies staff repricing an order or writing an unknown status', async () => {
+    await seed('orders/order-1', {
+      userId: 'customer-a',
+      totalPence: 1500,
+      status: 'confirmed',
+      statusHistory: [],
+    });
+
+    await assertFails(updateDoc(doc(dbFor(staff()), 'orders/order-1'), { totalPence: 1 }));
+    await assertFails(
+      updateDoc(doc(dbFor(staff()), 'orders/order-1'), { status: 'delivered-for-free' })
+    );
+    await assertFails(
+      updateDoc(doc(dbFor(customer()), 'orders/order-1'), { status: 'cancelled' })
+    );
+  });
+
+  it('lets only admin record a refund, and never above the order total', async () => {
+    await seed('orders/order-1', {
+      userId: 'customer-a',
+      totalPence: 1500,
+      status: 'confirmed',
+      paymentStatus: 'paid',
+      refundedPence: 0,
+      statusHistory: [],
+    });
+
+    await assertFails(
+      updateDoc(doc(dbFor(staff()), 'orders/order-1'), {
+        paymentStatus: 'partially_refunded',
+        refundedPence: 500,
+        updatedAt: new Date(),
+      })
+    );
+    await assertFails(
+      updateDoc(doc(dbFor(admin()), 'orders/order-1'), {
+        paymentStatus: 'refunded',
+        refundedPence: 9999,
+        updatedAt: new Date(),
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(dbFor(admin()), 'orders/order-1'), {
+        paymentStatus: 'partially_refunded',
+        refundedPence: 500,
+        statusHistory: [{ status: 'confirmed', at: new Date(), note: 'refund £5.00' }],
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  /**
+   * Mirrors exactly what the admin dashboard does: one transaction that moves
+   * the status and appends the audit entry, both with server timestamps.
+   */
+  it('accepts the dashboard transaction: status update plus audit entry', async () => {
+    await seed('orders/order-1', {
+      userId: 'customer-a',
+      totalPence: 1500,
+      status: 'confirmed',
+      statusHistory: [],
+    });
+
+    const database = dbFor(staff());
+    await assertSucceeds(
+      runTransaction(database, async (transaction) => {
+        const orderRef = doc(database, 'orders/order-1');
+        const snapshot = await transaction.get(orderRef);
+        if (!snapshot.exists()) throw new Error('missing order');
+
+        transaction.update(orderRef, {
+          status: 'preparing',
+          updatedAt: serverTimestamp(),
+          statusHistory: arrayUnion({ status: 'preparing', at: new Date(), note: 'picked' }),
+          internalNote: 'picked',
+        });
+
+        transaction.set(doc(collection(database, 'auditLog')), {
+          action: 'update_order_status',
+          entityType: 'order',
+          entityId: 'order-1',
+          uid: 'staff-1',
+          email: 'staff@example.com',
+          metadata: { from: 'confirmed', to: 'preparing' },
+          createdAt: serverTimestamp(),
+        });
+      })
     );
   });
 });
@@ -159,14 +272,56 @@ describe('server-only collections', () => {
     await assertFails(getDoc(doc(dbFor(admin()), 'stripeEvents/evt_1')));
   });
 
-  it('lets only admin read the audit log', async () => {
+  it('lets staff append their own audit entry but never forge or edit one', async () => {
     await seed('auditLog/entry-1', { action: 'product.updated' });
 
     await assertFails(getDoc(doc(dbFor(staff()), 'auditLog/entry-1')));
     await assertSucceeds(getDoc(doc(dbFor(admin()), 'auditLog/entry-1')));
-    await assertFails(
-      setDoc(doc(dbFor(admin()), 'auditLog/entry-2'), { action: 'forged.entry' })
+
+    // An honest entry: own uid, server timestamp.
+    await assertSucceeds(
+      setDoc(doc(dbFor(staff()), 'auditLog/entry-staff'), {
+        action: 'update',
+        entityType: 'product',
+        entityId: 'prod-1',
+        uid: 'staff-1',
+        email: 'staff@example.com',
+        metadata: { name: 'Plantain chips' },
+        createdAt: serverTimestamp(),
+      })
     );
+
+    // Attributed to somebody else.
+    await assertFails(
+      setDoc(doc(dbFor(staff()), 'auditLog/entry-forged'), {
+        action: 'delete',
+        entityType: 'product',
+        entityId: 'prod-1',
+        uid: 'admin-1',
+        email: 'staff@example.com',
+        metadata: null,
+        createdAt: serverTimestamp(),
+      })
+    );
+
+    // Back-dated entry.
+    await assertFails(
+      setDoc(doc(dbFor(admin()), 'auditLog/entry-backdated'), {
+        action: 'update',
+        entityType: 'product',
+        entityId: 'prod-1',
+        uid: 'admin-1',
+        email: 'admin@example.com',
+        metadata: null,
+        createdAt: new Date('2020-01-01T00:00:00Z'),
+      })
+    );
+
+    // The trail is append-only.
+    await assertFails(
+      updateDoc(doc(dbFor(admin()), 'auditLog/entry-1'), { action: 'tampered' })
+    );
+    await assertFails(deleteDoc(doc(dbFor(admin()), 'auditLog/entry-1')));
   });
 
   it('lets staff read promotions but not write them', async () => {
@@ -273,15 +428,69 @@ describe('products', () => {
     await assertSucceeds(getDoc(doc(dbFor(staff()), 'products/prod-hidden')));
   });
 
-  it('lets admin write products and denies staff writes', async () => {
-    await assertSucceeds(
-      setDoc(doc(dbFor(admin()), 'products/prod-new'), visibleProduct)
+  it('lets staff and admin write a valid product, denies customers and malformed documents', async () => {
+    // Exactly what the admin catalogue form writes: optional fields are null,
+    // timestamps are server timestamps.
+    const validProduct = {
+      name: 'Plantain chips',
+      slug: 'plantain-chips',
+      type: 'snack',
+      category: 'Snacks',
+      description: 'Crisp plantain chips.',
+      shortDescription: null,
+      ingredients: ['plantain', 'oil'],
+      allergens: [],
+      weightOrVolume: '150g',
+      images: [],
+      status: 'active',
+      seasonalStartDate: null,
+      seasonalEndDate: null,
+      variants: [
+        {
+          id: 'v1',
+          name: '150g',
+          pricePence: 450,
+          sku: 'PC-150',
+          stock: 10,
+          isDefault: false,
+        },
+      ],
+      seoTitle: null,
+      seoDescription: null,
+      isPopular: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    await assertSucceeds(setDoc(doc(dbFor(admin()), 'products/prod-new'), validProduct));
+    await assertSucceeds(setDoc(doc(dbFor(staff()), 'products/prod-new-staff'), validProduct));
+    await assertFails(
+      setDoc(doc(dbFor(customer()), 'products/prod-new-customer'), validProduct)
+    );
+
+    // Malformed writes are rejected even for an admin.
+    await assertFails(
+      setDoc(doc(dbFor(admin()), 'products/prod-no-variants'), {
+        ...validProduct,
+        variants: [],
+      })
     );
     await assertFails(
-      setDoc(doc(dbFor(staff()), 'products/prod-new-staff'), visibleProduct)
+      setDoc(doc(dbFor(admin()), 'products/prod-bad-status'), {
+        ...validProduct,
+        status: 'published',
+      })
     );
     await assertFails(
-      setDoc(doc(dbFor(customer()), 'products/prod-new-customer'), visibleProduct)
+      setDoc(doc(dbFor(admin()), 'products/prod-too-many-images'), {
+        ...validProduct,
+        images: [
+          { url: 'https://a/1.jpg', publicId: '1' },
+          { url: 'https://a/2.jpg', publicId: '2' },
+          { url: 'https://a/3.jpg', publicId: '3' },
+          { url: 'https://a/4.jpg', publicId: '4' },
+        ],
+      })
     );
   });
 
@@ -291,6 +500,47 @@ describe('products', () => {
 
     await assertFails(getDoc(doc(dbFor(customer()), 'products/prod-hidden/variants/v1')));
     await assertSucceeds(getDoc(doc(dbFor(staff()), 'products/prod-hidden/variants/v1')));
+  });
+});
+
+describe('delivery configuration', () => {
+  const validArea = {
+    id: 'da-ne1',
+    outwardCode: 'NE1',
+    areaName: 'Newcastle city centre',
+    feePence: 300,
+    minimumOrderPence: 1500,
+    isActive: true,
+  };
+
+  it('lets staff maintain areas and denies customers', async () => {
+    await assertSucceeds(
+      setDoc(doc(dbFor(staff()), 'deliveryAreas/da-ne1'), validArea)
+    );
+    await assertFails(
+      setDoc(doc(dbFor(customer()), 'deliveryAreas/da-ne2'), {
+        ...validArea,
+        id: 'da-ne2',
+        outwardCode: 'NE2',
+      })
+    );
+  });
+
+  it('rejects a negative or non-integer delivery fee', async () => {
+    await assertFails(
+      setDoc(doc(dbFor(staff()), 'deliveryAreas/da-bad-fee'), {
+        ...validArea,
+        id: 'da-bad-fee',
+        feePence: -100,
+      })
+    );
+    await assertFails(
+      setDoc(doc(dbFor(staff()), 'deliveryAreas/da-float-fee'), {
+        ...validArea,
+        id: 'da-float-fee',
+        feePence: 3.5,
+      })
+    );
   });
 });
 

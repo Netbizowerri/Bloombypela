@@ -50,6 +50,9 @@ if (isFirebaseConfigured) {
 // ---------------------------------------------------------------------------
 const useEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true';
 
+/** True when the app is talking to the local Firebase Emulator Suite. */
+export const usingEmulators = useEmulators;
+
 interface EmulatorRegistry {
   auth: WeakSet<Auth>;
   firestore: WeakSet<Firestore>;

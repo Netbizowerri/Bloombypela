@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "bloom-by-pela-placeholder"
-  }
+    "default": "bloombypela-ec784"
+  },
+  "targets": {},
+  "etags": {}
 }

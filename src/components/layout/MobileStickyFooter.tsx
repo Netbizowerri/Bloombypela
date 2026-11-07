@@ -26,7 +26,7 @@ export const MobileStickyFooter: React.FC = () => {
   const categories = [
     {
       title: 'Snacks',
-      subtitle: 'Life in Every Bite • Nigerian sourced',
+      subtitle: 'Life in Every Bite',
       to: '/shop/snacks',
       icon: Package,
       color: 'bg-amber-100 text-amber-900 border-amber-200',
@@ -34,7 +34,7 @@ export const MobileStickyFooter: React.FC = () => {
     },
     {
       title: 'Fresh juices and drinks',
-      subtitle: 'Life in Every Sip • UK Prepared',
+      subtitle: 'Life in Every Sip',
       to: '/shop/juices',
       icon: UtensilsCrossed,
       color: 'bg-emerald-100 text-[#155d2c] border-emerald-200',

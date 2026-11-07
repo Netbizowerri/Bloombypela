@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Plus, Trash2, Copy, Eye, EyeOff, Edit, Upload, Image, RefreshCw } from 'lucide-react';
 import { formatPence } from '../../lib/utils';
@@ -8,7 +9,8 @@ import { cld, cloudinaryPublicId } from '../../lib/cld';
 import { UK_ALLERGENS } from '../../lib/utils';
 import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, PRODUCT_IMAGE_FOLDER } from '../../lib/cloudinary';
 import { useProducts } from '../../features/catalogue';
-import { callable } from '../../lib/functions';
+import { catalogueAdmin } from '../../features/catalogue/adminRepository';
+import { describeCallableError } from '../../lib/callableError';
 import { useToast } from '../../context/ToastContext';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -36,7 +38,6 @@ type ClientProduct = {
   seoTitle?: string | null;
   seoDescription?: string | null;
   isPopular?: boolean;
-  origin?: 'Nigeria' | 'UK Prepared' | 'West Africa' | null;
 };
 
 type ClientVariant = {
@@ -82,15 +83,25 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const ClientProductSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1).max(200),
-  slug: z.string().min(1).max(200),
+  name: z.string().min(1, 'Product name is required.').max(200, 'Product name is too long.'),
+  slug: z
+    .string()
+    .min(1, 'Slug is required.')
+    .max(200, 'Slug is too long.')
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use lowercase letters, numbers and single hyphens only.'),
   type: z.enum(['snack', 'juice']),
-  category: z.string().min(1).max(100),
-  description: z.string().min(1).max(4000),
+  category: z.string().min(1, 'Category is required.').max(100, 'Category is too long.'),
+  description: z
+    .string()
+    .min(1, 'Description is required.')
+    .max(4000, 'Description is too long.'),
   shortDescription: z.string().max(500).optional().nullable(),
   ingredients: z.array(z.string().min(1)).max(50),
   allergens: z.array(AllergenSchema),
-  weightOrVolume: z.string().min(1).max(100),
+  weightOrVolume: z
+    .string()
+    .min(1, 'Weight or volume is required.')
+    .max(100, 'Weight or volume is too long.'),
   images: z
     .array(z.object({ url: z.string().url(), publicId: z.string() }))
     .max(MAX_PRODUCT_IMAGES, `A product can have up to ${MAX_PRODUCT_IMAGES} images.`),
@@ -100,10 +111,16 @@ const ClientProductSchema = z.object({
   variants: z.array(
     z.object({
       id: z.string().min(1),
-      name: z.string().min(1),
-      pricePence: z.number().int().nonnegative(),
-      sku: z.string().min(1),
-      stock: z.number().int().nonnegative(),
+      name: z.string().min(1, 'Variant name is required.'),
+      pricePence: z
+        .number({ error: 'Enter a price in whole pence.' })
+        .int('Use whole pence, for example 450.')
+        .nonnegative('Price cannot be negative.'),
+      sku: z.string().min(1, 'SKU is required.'),
+      stock: z
+        .number({ error: 'Enter the stock count.' })
+        .int('Use a whole number.')
+        .nonnegative('Stock cannot be negative.'),
       isDefault: z.boolean().optional(),
       image: z
         .object({
@@ -112,19 +129,34 @@ const ClientProductSchema = z.object({
         })
         .optional(),
     }),
-  ).min(1),
+  ).min(1, 'Add at least one variant.'),
   seoTitle: z.string().max(200).optional().nullable(),
   seoDescription: z.string().max(400).optional().nullable(),
   isPopular: z.boolean().optional(),
-  origin: z.enum(['Nigeria', 'UK Prepared', 'West Africa']).optional().nullable(),
 });
+
+/** Builds a storefront-safe slug from a product name. */
+function slugify(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/['’]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200)
+    .replace(/-+$/g, '');
+}
 
 type ClientProductInput = z.infer<typeof ClientProductSchema>;
 
-const createProductFn = callable<ClientProductInput, { ok: boolean; id: string }>('createProduct');
-const updateProductFn = callable<ClientProductInput & { id: string }, { ok: boolean; id: string }>('updateProduct');
-const softDeleteProductFn = callable<{ id: string }, { ok: boolean; id: string }>('softDeleteProduct');
-const duplicateProductFn = callable<{ id: string; newId: string }, { ok: boolean; id: string }>('duplicateProduct');
+/**
+ * Turns a product save failure into a message an admin can act on.
+ * Firestore (not a callable) now performs the write, so both error shapes are
+ * mapped.
+ */
+function describeSaveError(err: unknown): string {
+  return describeCallableError(err, 'Could not save the product.');
+}
 
 /**
  * Turns callable and Cloudinary failures into a message an admin can act on.
@@ -137,32 +169,6 @@ function describeUploadError(err: unknown): string {
     return err.message;
   }
   return 'Could not upload the image. Try again.';
-}
-
-/** Turns a product save failure into a message an admin can act on. */
-function describeSaveError(err: unknown): string {
-  const code =
-    typeof err === 'object' && err !== null && 'code' in err
-      ? String((err as { code: unknown }).code)
-      : '';
-  const message =
-    err instanceof Error && err.message ? err.message : 'Could not save the product.';
-
-  switch (code) {
-    case 'functions/unauthenticated':
-      return 'Your session has expired. Sign in again and retry.';
-    case 'functions/permission-denied':
-      return 'This account does not have permission to save products.';
-    case 'functions/invalid-argument':
-      return message;
-    case 'functions/not-found':
-      return 'The product no longer exists. Refresh and try again.';
-    case 'functions/unavailable':
-    case 'functions/internal':
-      return `Save failed (server error). ${message}`;
-    default:
-      return message;
-  }
 }
 
 function defaultProduct(): ClientProductInput {
@@ -185,7 +191,6 @@ function defaultProduct(): ClientProductInput {
     seoTitle: null,
     seoDescription: null,
     isPopular: false,
-    origin: 'UK Prepared',
   };
 }
 
@@ -210,13 +215,17 @@ function toClientProduct(server: unknown): ClientProduct {
     seoTitle: p.seoTitle ?? null,
     seoDescription: p.seoDescription ?? null,
     isPopular: p.isPopular ?? false,
-    origin: (p.origin as ClientProduct['origin']) ?? null,
   };
 }
 
 export const AdminCatalogue: React.FC = () => {
-  const { data: products = [], isLoading, isError, error } = useProducts({ includeHidden: true });
+  const { data: products = [], isLoading, isError, error, refetch } = useProducts({ includeHidden: true });
   const { success, error: showError } = useToast();
+  const queryClient = useQueryClient();
+  const refreshCatalogue = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['catalogue'] }),
+    [queryClient],
+  );
 
   const [editing, setEditing] = useState<ClientProduct | null>(null);
   const [open, setOpen] = useState(false);
@@ -229,6 +238,10 @@ export const AdminCatalogue: React.FC = () => {
   });
 
   const images = useWatch({ control: form.control, name: 'images' }) ?? [];
+  // Watched so checkbox/select changes re-render: form.getValues() alone does not subscribe.
+  const allergens = (useWatch({ control: form.control, name: 'allergens' }) ?? []) as Allergen[];
+  const status = useWatch({ control: form.control, name: 'status' });
+  const isPopular = useWatch({ control: form.control, name: 'isPopular' });
   const fileInputRef = useRef<HTMLInputElement>(null);
   /**
    * Public ids uploaded during the current edit session. Only these are safe
@@ -257,14 +270,29 @@ export const AdminCatalogue: React.FC = () => {
   );
 
   const onSubmit = async (values: ClientProductInput) => {
+    const slug = values.slug.trim().toLowerCase();
+    const slugTaken = products.some(
+      (product) => product.id !== values.id && product.slug.trim().toLowerCase() === slug,
+    );
+    if (slugTaken) {
+      form.setError('slug', {
+        type: 'manual',
+        message: 'Another product already uses this slug. Choose a different one.',
+      });
+      showError('Slug already in use', 'Each product needs its own unique slug.');
+      return;
+    }
+
     try {
       if (editing) {
-        await updateProductFn(values);
+        await catalogueAdmin.updateProduct(values);
         success('Product updated', `${values.name} saved.`);
       } else {
-        await createProductFn(values);
+        await catalogueAdmin.createProduct(values);
         success('Product created', `${values.name} added to the catalogue.`);
       }
+      // Refetch the list so the saved product appears without a page reload.
+      await refreshCatalogue();
       // The images now belong to the saved product, so they must not be cleaned up.
       sessionUploads.current.clear();
       setLinkUrl('');
@@ -279,36 +307,39 @@ export const AdminCatalogue: React.FC = () => {
   const handleToggleStatus = useCallback(async (product: ClientProduct) => {
     try {
       if (product.status === 'active' || product.status === 'seasonal') {
-        await softDeleteProductFn({ id: product.id });
+        await catalogueAdmin.softDeleteProduct(product.id);
         success('Product hidden', `${product.name} is no longer visible to customers.`);
       } else {
-        await updateProductFn({ ...product, status: 'active' });
+        await catalogueAdmin.updateProduct({ ...product, status: 'active' });
         success('Product active', `${product.name} is visible to customers again.`);
       }
+      await refreshCatalogue();
     } catch (err) {
-      showError('Could not update status', err instanceof Error ? err.message : 'Unexpected error.');
+      showError('Could not update status', describeCallableError(err));
     }
-  }, []);
+  }, [refreshCatalogue, showError, success]);
 
   const handleDuplicate = useCallback(async (product: ClientProduct) => {
     try {
       const newId = crypto.randomUUID();
-      await duplicateProductFn({ id: product.id, newId });
-      success('Product duplicated', `Created copy as ${newId}.`);
+      await catalogueAdmin.duplicateProduct(product.id, newId);
+      success('Product duplicated', `${product.name} copied. Edit the copy to rename it.`);
+      await refreshCatalogue();
     } catch (err) {
-      showError('Duplicate failed', err instanceof Error ? err.message : 'Unexpected error.');
+      showError('Duplicate failed', describeCallableError(err));
     }
-  }, []);
+  }, [refreshCatalogue, showError, success]);
 
   const handleDelete = useCallback(async (product: ClientProduct) => {
     if (!window.confirm(`Soft-delete "${product.name}"? It will be hidden from the storefront.`)) return;
     try {
-      await softDeleteProductFn({ id: product.id });
+      await catalogueAdmin.softDeleteProduct(product.id);
       success('Product hidden', `${product.name} removed from the storefront.`);
+      await refreshCatalogue();
     } catch (err) {
-      showError('Could not hide product', err instanceof Error ? err.message : 'Unexpected error.');
+      showError('Could not hide product', describeCallableError(err));
     }
-  }, []);
+  }, [refreshCatalogue, showError, success]);
 
   /**
    * Best-effort removal of images uploaded in this session but not saved.
@@ -486,15 +517,26 @@ export const AdminCatalogue: React.FC = () => {
             Manage snacks, cold-pressed juices, variants, allergens, inventory, SEO and images.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="h-4 w-4" />}
-          onClick={() => resetForm(null)}
-          disabled={form.formState.isSubmitting}
-        >
-          Add New Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            leftIcon={<RefreshCw className="h-4 w-4" />}
+            onClick={() => void refetch()}
+            disabled={isLoading || form.formState.isSubmitting}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => resetForm(null)}
+            disabled={form.formState.isSubmitting}
+          >
+            Add New Product
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
@@ -529,10 +571,7 @@ export const AdminCatalogue: React.FC = () => {
                             <Image className="h-5 w-5" />
                           </div>
                         )}
-                        <div>
-                          <div className="font-semibold text-stone-900">{client.name}</div>
-                          <span className="text-[10px] text-stone-400">{client.origin ?? 'UK Prepared'}</span>
-                        </div>
+                        <div className="font-semibold text-stone-900">{client.name}</div>
                       </div>
                     </td>
 
@@ -647,7 +686,20 @@ export const AdminCatalogue: React.FC = () => {
                 <span className="block text-stone-900">✕</span>
               </button>
             </div>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+            <form
+              onSubmit={form.handleSubmit(onSubmit, () => {
+                showError('Check the product form', 'Some required fields need attention.');
+              })}
+              className="p-6 space-y-5 overflow-y-auto max-h-[70vh]"
+            >
+              {form.formState.submitCount > 0 && Object.keys(form.formState.errors).length > 0 && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-900"
+                >
+                  Some fields below need attention before this product can be saved.
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
@@ -671,6 +723,18 @@ export const AdminCatalogue: React.FC = () => {
                     className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                     placeholder="e.g. plantain-chips"
                   />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      form.setValue('slug', slugify(form.getValues('name') ?? ''), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    className="text-[10px] text-[#7e2b44] underline underline-offset-2 hover:text-[#5a1f2e]"
+                  >
+                    Generate from product name
+                  </button>
                   {form.formState.errors.slug && (
                     <p className="text-[10px] text-[#c93c3c]">{form.formState.errors.slug.message}</p>
                   )}
@@ -758,17 +822,19 @@ export const AdminCatalogue: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {UK_ALLERGENS.map((allergen) => {
-                    const selected = (form.getValues('allergens') as Allergen[]) ?? [];
                     return (
                       <label key={allergen} className="flex items-center gap-2 text-[10px] cursor-pointer select-none group">
                         <input
                           type="checkbox"
-                          checked={selected.includes(allergen)}
+                          checked={allergens.includes(allergen)}
                           onChange={() => {
-                            const next = selected.includes(allergen)
-                              ? selected.filter((a) => a !== allergen)
-                              : [...selected, allergen];
-                            form.setValue('allergens', next);
+                            const next = allergens.includes(allergen)
+                              ? allergens.filter((a) => a !== allergen)
+                              : [...allergens, allergen];
+                            form.setValue('allergens', next, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            });
                           }}
                           className="w-3 h-3 rounded border-stone-300 text-[#7e2b44] focus:ring-[#7e2b44]"
                         />
@@ -909,14 +975,28 @@ export const AdminCatalogue: React.FC = () => {
                           className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                           placeholder="e.g. 250g"
                         />
+                        {form.formState.errors.variants?.[index]?.name && (
+                          <p className="text-[10px] text-[#c93c3c]">
+                            {form.formState.errors.variants[index]?.name?.message}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] text-stone-500">Price (pence)</label>
                         <input
-                          {...form.register(`variants.${index}.pricePence`)}
+                          {...form.register(`variants.${index}.pricePence`, {
+                            valueAsNumber: true,
+                          })}
                           type="number"
+                          min={0}
+                          step={1}
                           className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                         />
+                        {form.formState.errors.variants?.[index]?.pricePence && (
+                          <p className="text-[10px] text-[#c93c3c]">
+                            {form.formState.errors.variants[index]?.pricePence?.message}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] text-stone-500">SKU</label>
@@ -924,14 +1004,28 @@ export const AdminCatalogue: React.FC = () => {
                           {...form.register(`variants.${index}.sku`)}
                           className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                         />
+                        {form.formState.errors.variants?.[index]?.sku && (
+                          <p className="text-[10px] text-[#c93c3c]">
+                            {form.formState.errors.variants[index]?.sku?.message}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] text-stone-500">Stock</label>
                         <input
-                          {...form.register(`variants.${index}.stock`)}
+                          {...form.register(`variants.${index}.stock`, {
+                            valueAsNumber: true,
+                          })}
                           type="number"
+                          min={0}
+                          step={1}
                           className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                         />
+                        {form.formState.errors.variants?.[index]?.stock && (
+                          <p className="text-[10px] text-[#c93c3c]">
+                            {form.formState.errors.variants[index]?.stock?.message}
+                          </p>
+                        )}
                       </div>
                       {variantFields.length > 1 && (
                         <button
@@ -963,7 +1057,7 @@ export const AdminCatalogue: React.FC = () => {
                     <option value="seasonal">Seasonal</option>
                   </select>
                 </div>
-                {form.getValues('status') === 'seasonal' && (
+                {status === 'seasonal' && (
                   <div className="space-y-2 col-span-2">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
                       Seasonal window (YYYY-MM-DD, Europe/London)
@@ -1013,28 +1107,16 @@ export const AdminCatalogue: React.FC = () => {
                   <input
                     id="isPopular"
                     type="checkbox"
-                    checked={form.getValues('isPopular') === true}
-                    onChange={() => form.setValue('isPopular', !form.getValues('isPopular'))}
+                    checked={isPopular === true}
+                    onChange={() =>
+                      form.setValue('isPopular', !isPopular, { shouldDirty: true })
+                    }
                     className="w-3 h-3 rounded border-stone-300 text-[#7e2b44] focus:ring-[#7e2b44]"
                   />
                   <label htmlFor="isPopular" className="text-[10px] text-stone-600">
                     Featured product
                   </label>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Origin
-                </label>
-                <select
-                  {...form.register('origin')}
-                  className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
-                >
-                  <option value="UK Prepared">UK Prepared</option>
-                  <option value="Nigeria">Nigeria</option>
-                  <option value="West Africa">West Africa</option>
-                </select>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-stone-100">

@@ -10,7 +10,7 @@ import { formatPence } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
-import { Plus, Edit, Trash2, Clock, ShieldCheck, Truck, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Clock, ShieldCheck, Truck, Save } from 'lucide-react';
 import { z } from 'zod';
 
 const AreaFormSchema = z.object({
@@ -28,6 +28,37 @@ const SettingsFormSchema = z.object({
   collectionDetails: z.string().max(500).optional().nullable(),
 });
 
+/**
+ * Mirrors the `deliverySchedule` validation in firestore.rules: `HH:mm` on a
+ * 24-hour clock and a 0-30 day lead time. Kept slightly stricter than the
+ * rules (hours 00-23 rather than 00-29) so a typo never reaches Firestore.
+ */
+const ScheduleFormSchema = z.object({
+  cutoffTime: z
+    .string()
+    .regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, 'Enter a cut-off time as HH:mm, e.g. 14:30.'),
+  leadDays: z.number().int().min(0).max(30),
+  isActive: z.boolean(),
+});
+
+/** Mirrors the `closedDates` validation in firestore.rules. */
+const ClosedDateFormSchema = z.object({
+  date: z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/, 'Choose a date.'),
+  reason: z.string().trim().min(1, 'Give a short reason.').max(200),
+});
+
+const WEEKDAYS: Array<{ weekday: number; label: string }> = [
+  { weekday: 1, label: 'Monday' },
+  { weekday: 2, label: 'Tuesday' },
+  { weekday: 3, label: 'Wednesday' },
+  { weekday: 4, label: 'Thursday' },
+  { weekday: 5, label: 'Friday' },
+  { weekday: 6, label: 'Saturday' },
+  { weekday: 7, label: 'Sunday' },
+];
+
+type ScheduleDraft = z.infer<typeof ScheduleFormSchema>;
+
 type DeliveryArea = {
   id: string;
   outwardCode: string;
@@ -39,8 +70,18 @@ type DeliveryArea = {
 
 export const AdminDeliverySettings: React.FC = () => {
   const { data: areas = [], isLoading: areasLoading, refetch: refetchAreas } = useDeliveryAreas();
-  const { data: schedule = [], refetch: refetchSchedule } = useDeliverySchedule();
-  const { data: closedDates = [], refetch: refetchClosedDates } = useClosedDates();
+  const {
+    data: schedule = [],
+    isError: scheduleError,
+    error: scheduleErrorValue,
+    refetch: refetchSchedule,
+  } = useDeliverySchedule();
+  const {
+    data: closedDates = [],
+    isError: closedDatesError,
+    error: closedDatesErrorValue,
+    refetch: refetchClosedDates,
+  } = useClosedDates();
   const { data: settings, refetch: refetchSettings } = usePublicSettings();
   const { success, error: showError } = useToast();
 
@@ -62,7 +103,40 @@ export const AdminDeliverySettings: React.FC = () => {
 
   const [submitting, setSubmitting] = useState<Set<string>>(new Set());
 
+  /**
+   * Uncommitted schedule edits, keyed by weekday. A weekday with no entry uses
+   * the stored document, so untouched days render exactly what Firestore holds.
+   */
+  const [scheduleDrafts, setScheduleDrafts] = useState<Record<number, ScheduleDraft>>({});
+  const [closedDateForm, setClosedDateForm] = useState<{ date: string; reason: string }>({
+    date: '',
+    reason: '',
+  });
+
   const isSubmitting = (id: string) => submitting.has(id);
+
+  /** Stored schedule row for a weekday, if the owner has configured one. */
+  const scheduleForWeekday = (weekday: number) =>
+    schedule.find((entry) => Number(entry.weekday) === weekday);
+
+  /** Current editor values for a weekday: the draft, else the stored row, else defaults. */
+  const scheduleDraftFor = (weekday: number): ScheduleDraft => {
+    const draft = scheduleDrafts[weekday];
+    if (draft) return draft;
+    const stored = scheduleForWeekday(weekday);
+    return {
+      cutoffTime: stored?.cutoffTime ?? '12:00',
+      leadDays: typeof stored?.leadDays === 'number' ? stored.leadDays : 1,
+      isActive: stored?.isActive ?? false,
+    };
+  };
+
+  const updateScheduleDraft = (weekday: number, patch: Partial<ScheduleDraft>) => {
+    setScheduleDrafts((prev) => ({
+      ...prev,
+      [weekday]: { ...scheduleDraftFor(weekday), ...patch },
+    }));
+  };
 
   const handleAddArea = useCallback(() => {
     setEditingAreaId(null);
@@ -177,6 +251,101 @@ export const AdminDeliverySettings: React.FC = () => {
       });
     }
   }, [settingsForm, refetchSettings, showError, success]);
+
+  /**
+   * Saves one weekday of the delivery schedule. Upsert: a weekday that has no
+   * document yet is created, an existing one is updated in place.
+   */
+  const handleSaveScheduleDay = useCallback(
+    async (weekday: number) => {
+      const draft = scheduleDraftFor(weekday);
+      const parsed = ScheduleFormSchema.safeParse(draft);
+      if (!parsed.success) {
+        showError('Invalid schedule', parsed.error.issues[0]?.message ?? 'Check the fields.');
+        return;
+      }
+
+      const key = `schedule-${weekday}`;
+      setSubmitting((prev) => new Set([...prev, key]));
+      try {
+        await deliveryApi.upsertDeliverySchedule({
+          id: scheduleForWeekday(weekday)?.id,
+          weekday,
+          cutoffTime: parsed.data.cutoffTime,
+          leadDays: parsed.data.leadDays,
+          isActive: parsed.data.isActive,
+        });
+        success(
+          'Schedule saved',
+          `${WEEKDAYS.find((d) => d.weekday === weekday)?.label ?? `Weekday ${weekday}`} updated.`,
+        );
+        // Drop the draft so the row renders the freshly stored document.
+        setScheduleDrafts((prev) => {
+          const next = { ...prev };
+          delete next[weekday];
+          return next;
+        });
+        await refetchSchedule();
+      } catch (err) {
+        showError('Save failed', err instanceof Error ? err.message : 'Unknown error.');
+      } finally {
+        setSubmitting((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    },
+    [refetchSchedule, scheduleDraftFor, scheduleForWeekday, showError, success],
+  );
+
+  const handleAddClosedDate = useCallback(async () => {
+    const parsed = ClosedDateFormSchema.safeParse(closedDateForm);
+    if (!parsed.success) {
+      showError('Invalid closed date', parsed.error.issues[0]?.message ?? 'Check the fields.');
+      return;
+    }
+
+    setSubmitting((prev) => new Set([...prev, 'closed-new']));
+    try {
+      await deliveryApi.upsertClosedDate({
+        date: parsed.data.date,
+        reason: parsed.data.reason,
+      });
+      success('Closed date saved', `${parsed.data.date} will not be offered for delivery.`);
+      setClosedDateForm({ date: '', reason: '' });
+      await refetchClosedDates();
+    } catch (err) {
+      showError('Save failed', err instanceof Error ? err.message : 'Unknown error.');
+    } finally {
+      setSubmitting((prev) => {
+        const next = new Set(prev);
+        next.delete('closed-new');
+        return next;
+      });
+    }
+  }, [closedDateForm, refetchClosedDates, showError, success]);
+
+  const handleDeleteClosedDate = useCallback(
+    async (id: string) => {
+      if (!window.confirm(`Remove closed date ${id}?`)) return;
+      setSubmitting((prev) => new Set([...prev, `closed-${id}`]));
+      try {
+        await deliveryApi.deleteClosedDate(id);
+        success('Closed date removed', `${id} is offered again.`);
+        await refetchClosedDates();
+      } catch (err) {
+        showError('Delete failed', err instanceof Error ? err.message : 'Unknown error.');
+      } finally {
+        setSubmitting((prev) => {
+          const next = new Set(prev);
+          next.delete(`closed-${id}`);
+          return next;
+        });
+      }
+    },
+    [refetchClosedDates, showError, success],
+  );
 
   if (areasLoading) {
     return (
@@ -307,28 +476,99 @@ export const AdminDeliverySettings: React.FC = () => {
             Weekly Delivery Schedule (Europe/London)
           </h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          {schedule.map((day) => (
-            <div key={day.id} className="p-4 rounded-xl bg-stone-50 border border-stone-200 space-y-1">
-              <span className="text-[10px] uppercase font-bold text-stone-400">
-                Weekday {day.weekday}
-              </span>
-              <p className="font-bold text-stone-800 text-sm">{day.cutoffTime} cutoff</p>
-              <p className="text-stone-500 text-[11px]">{day.leadDays} day lead time</p>
-              <Badge variant={day.isActive ? 'green' : 'neutral'} size="sm">
-                {day.isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-          ))}
-          {schedule.length === 0 && (
-            <p className="text-xs text-stone-400 text-center py-4">
-              No schedule days configured.
+        {scheduleError && (
+          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-[11px] text-red-800">
+            <p className="font-semibold">The delivery schedule could not be loaded.</p>
+            <p className="mt-1">
+              {scheduleErrorValue instanceof Error
+                ? scheduleErrorValue.message
+                : 'Check your connection and try again.'}
             </p>
-          )}
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => void refetchSchedule()}>
+              Try again
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-3 text-xs">
+          {WEEKDAYS.map(({ weekday, label }) => {
+            const stored = scheduleForWeekday(weekday);
+            const draft = scheduleDraftFor(weekday);
+            const key = `schedule-${weekday}`;
+            const busy = isSubmitting(key);
+            return (
+              <div
+                key={weekday}
+                className="grid grid-cols-1 sm:grid-cols-[7rem_8rem_7rem_auto_auto] sm:items-end gap-3 p-4 rounded-xl bg-stone-50 border border-stone-200"
+              >
+                <div>
+                  <p className="font-bold text-stone-800">{label}</p>
+                  <p className="text-[10px] text-stone-500">
+                    {stored ? (stored.isActive ? 'Offered' : 'Switched off') : 'Not configured'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`cutoff-${weekday}`}
+                    className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block"
+                  >
+                    Cut-off (London)
+                  </label>
+                  <input
+                    id={`cutoff-${weekday}`}
+                    type="time"
+                    value={draft.cutoffTime}
+                    onChange={(e) => updateScheduleDraft(weekday, { cutoffTime: e.target.value })}
+                    className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`lead-${weekday}`}
+                    className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block"
+                  >
+                    Lead days
+                  </label>
+                  <input
+                    id={`lead-${weekday}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={30}
+                    step={1}
+                    value={draft.leadDays}
+                    onChange={(e) =>
+                      updateScheduleDraft(weekday, { leadDays: Number(e.target.value) || 0 })
+                    }
+                    className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-[10px] cursor-pointer sm:pb-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.isActive}
+                    onChange={(e) => updateScheduleDraft(weekday, { isActive: e.target.checked })}
+                    className="w-3 h-3 rounded border-stone-300 text-[#7e2b44] focus:ring-[#7e2b44]"
+                  />
+                  {draft.isActive ? 'Active' : 'Inactive'}
+                </label>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => void handleSaveScheduleDay(weekday)}
+                  disabled={busy}
+                  leftIcon={<Save className="h-3 w-3" />}
+                >
+                  {busy ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            );
+          })}
         </div>
-        <p className="text-[10px] text-stone-500 mt-1">
-          Schedule days are managed via the admin callable functions. Use the UI above to add areas;
-          schedule, closed dates, and capacity are configured in Firestore by the owner.
+        <p className="text-[10px] text-stone-500">
+          Weekdays follow Europe/London. A cut-off of 14:00 with a 1 day lead time means the
+          earliest delivery is the next day. Turning a day off removes it from the storefront
+          calendar; the saved row is kept.
         </p>
       </div>
 
@@ -409,16 +649,100 @@ export const AdminDeliverySettings: React.FC = () => {
           <ShieldCheck className="h-5 w-5 text-[#7e2b44]" />
           <h3 className="font-serif text-base font-bold text-stone-900">Closed Dates & Holidays</h3>
         </div>
+        {closedDatesError && (
+          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-[11px] text-red-800">
+            <p className="font-semibold">Closed dates could not be loaded.</p>
+            <p className="mt-1">
+              {closedDatesErrorValue instanceof Error
+                ? closedDatesErrorValue.message
+                : 'Check your connection and try again.'}
+            </p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => void refetchClosedDates()}>
+              Try again
+            </Button>
+          </div>
+        )}
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleAddClosedDate();
+          }}
+          className="grid grid-cols-1 sm:grid-cols-[10rem_1fr_auto] gap-3 items-end"
+        >
+          <div className="space-y-1">
+            <label
+              htmlFor="closed-date"
+              className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block"
+            >
+              Date
+            </label>
+            <input
+              id="closed-date"
+              type="date"
+              required
+              value={closedDateForm.date}
+              onChange={(e) => setClosedDateForm({ ...closedDateForm, date: e.target.value })}
+              className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+            />
+          </div>
+          <div className="space-y-1">
+            <label
+              htmlFor="closed-reason"
+              className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block"
+            >
+              Reason
+            </label>
+            <input
+              id="closed-reason"
+              required
+              maxLength={200}
+              value={closedDateForm.reason}
+              onChange={(e) => setClosedDateForm({ ...closedDateForm, reason: e.target.value })}
+              className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+              placeholder="e.g. Bank holiday"
+            />
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            type="submit"
+            disabled={isSubmitting('closed-new')}
+            leftIcon={<Plus className="h-3 w-3" />}
+          >
+            {isSubmitting('closed-new') ? 'Adding…' : 'Add closed date'}
+          </Button>
+        </form>
+        <p className="text-[10px] text-stone-500">
+          Adding a date that is already listed replaces its reason. Closed dates are never offered
+          in the storefront delivery calendar.
+        </p>
+
         <div className="space-y-2">
           {closedDates.map((cd) => (
-            <div key={cd.id} className="flex items-center justify-between p-3 rounded-lg border border-stone-100 bg-stone-50 text-xs">
-              <span className="font-medium">{cd.date}</span>
-              <span className="text-stone-500">{cd.reason}</span>
+            <div
+              key={cd.id}
+              className="flex items-center justify-between gap-3 p-3 rounded-lg border border-stone-100 bg-stone-50 text-xs"
+            >
+              <div className="min-w-0">
+                <span className="font-medium">{cd.date}</span>
+                <span className="text-stone-500"> — {cd.reason}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleDeleteClosedDate(cd.id)}
+                disabled={isSubmitting(`closed-${cd.id}`)}
+                className="p-1 shrink-0 text-stone-500 hover:text-[#c93c3c] transition-colors disabled:opacity-50"
+                title={`Remove ${cd.date}`}
+                aria-label={`Remove closed date ${cd.date}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))}
-          {closedDates.length === 0 && (
+          {closedDates.length === 0 && !closedDatesError && (
             <p className="text-xs text-stone-400 text-center py-4">
-              No closed dates configured.
+              No closed dates configured. Delivery is offered every scheduled week.
             </p>
           )}
         </div>

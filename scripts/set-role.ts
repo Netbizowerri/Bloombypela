@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { defaultProjectId } from './lib/project.js';
 
 /**
  * Grants the `role` custom claim used by Firestore rules and Cloud Functions.
@@ -89,8 +90,8 @@ async function main(): Promise<void> {
       ? getApps()[0]
       : initializeApp(
           emulatorHost
-            ? { projectId: process.env.GCLOUD_PROJECT ?? 'bloom-by-pela-placeholder' }
-            : { credential: applicationDefault(), projectId: process.env.GCLOUD_PROJECT }
+            ? { projectId: defaultProjectId() }
+            : { credential: applicationDefault(), projectId: defaultProjectId() }
         );
 
   const auth = getAuth(app);

@@ -73,7 +73,6 @@ function docToProduct(snap: DocumentData): Product {
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : undefined,
     seoDescription: typeof data.seoDescription === 'string' ? data.seoDescription : undefined,
     isPopular: typeof data.isPopular === 'boolean' ? data.isPopular : undefined,
-    origin: (typeof data.origin === 'string' ? data.origin : undefined) as Product['origin'],
   };
 }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { describeAuthError } from '../../lib/authError';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Lock, Mail } from 'lucide-react';
@@ -37,8 +38,7 @@ export const LoginPage: React.FC = () => {
       success('Welcome back!', 'You have successfully signed in.');
       navigate(from, { replace: true });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Invalid email or password.';
-      error('Sign-in failed', message);
+      error('Sign-in failed', describeAuthError(err));
     } finally {
       setIsLoading(false);
     }

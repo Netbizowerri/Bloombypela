@@ -86,6 +86,27 @@ export const ProductDetailPage: React.FC = () => {
     product.variants.find((v) => v.isDefault) ||
     product.variants[0];
 
+  // Keep the selected pack size and the displayed photo in sync: each variant
+  // that carries its own image is shown separately rather than sharing one photo.
+  const imageIndexForVariant = (variantId: string): number => {
+    const variant = product.variants.find((v) => v.id === variantId);
+    if (!variant?.image) return -1;
+    return product.images.findIndex((img) => img.url === variant.image?.url);
+  };
+
+  const handleSelectVariant = (variantId: string) => {
+    setSelectedVariantId(variantId);
+    const index = imageIndexForVariant(variantId);
+    if (index >= 0) setActiveImageIndex(index);
+  };
+
+  const handleSelectImage = (index: number) => {
+    setActiveImageIndex(index);
+    const url = product.images[index]?.url;
+    const matchingVariant = product.variants.find((v) => v.image && v.image.url === url);
+    if (matchingVariant) setSelectedVariantId(matchingVariant.id);
+  };
+
   const handleAddToCart = () => {
     addItem(product, activeVariant, quantity);
     openCart();
@@ -146,11 +167,14 @@ export const ProductDetailPage: React.FC = () => {
         <div className="lg:col-span-6 space-y-4">
           {(() => {
             const feature = product.images[activeImageIndex] ?? product.images[0];
+            const featureVariant = product.variants.find(
+              (v) => v.image && v.image.url === feature?.url,
+            );
             return (
               <div className="relative aspect-4/3 sm:aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs group">
                 <img
                   src={feature ? cld(feature.url, 900) : ''}
-                  alt={product.name}
+                  alt={featureVariant ? `${product.name} — ${featureVariant.name}` : product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {/* Badges on main image */}
@@ -176,24 +200,38 @@ export const ProductDetailPage: React.FC = () => {
           {/* Thumbnail Gallery (if more than 1 image) */}
           {product.images.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-1">
-              {product.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setActiveImageIndex(idx)}
-                  className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                    activeImageIndex === idx
-                      ? 'border-[#155d2c] ring-2 ring-[#155d2c]/20'
-                      : 'border-stone-200 hover:border-stone-300 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img
-                    src={cld(img.url, 320)}
-                    alt={`${product.name} preview ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
+              {product.images.map((img, idx) => {
+                const matchingVariant = product.variants.find(
+                  (v) => v.image && v.image.url === img.url,
+                );
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectImage(idx)}
+                    className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                      activeImageIndex === idx
+                        ? 'border-[#155d2c] ring-2 ring-[#155d2c]/20'
+                        : 'border-stone-200 hover:border-stone-300 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img
+                      src={cld(img.url, 320)}
+                      alt={
+                        matchingVariant
+                          ? `${product.name} ${matchingVariant.name}`
+                          : `${product.name} preview ${idx + 1}`
+                      }
+                      className="w-full h-full object-cover"
+                    />
+                    {matchingVariant && (
+                      <span className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] font-semibold text-center py-0.5">
+                        {matchingVariant.name}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -280,7 +318,7 @@ export const ProductDetailPage: React.FC = () => {
                       <button
                         key={v.id}
                         type="button"
-                        onClick={() => setSelectedVariantId(v.id)}
+                        onClick={() => handleSelectVariant(v.id)}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
                             ? 'bg-[#155d2c]/5 border-[#155d2c] ring-1 ring-[#155d2c]'

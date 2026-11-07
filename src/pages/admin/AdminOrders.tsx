@@ -3,9 +3,10 @@
  *
  * Read-only list of all orders with search by order number / email / name,
  * filters by status, date and fulfilment. Detail drawer shows the full order
- * with status timeline and internal notes. Status updates go through the
- * `updateOrderStatus` callable (appends statusHistory + auditLog). Refunds go
- * through `refundOrder` (admin only, Stripe refunds API, idempotency key).
+ * with status timeline and internal notes. Status updates are applied in a
+ * Firestore transaction that appends statusHistory plus an auditLog entry.
+ * Refunds are issued in the Stripe dashboard (that needs the secret key) and
+ * then recorded against the order here.
  * Packing slip print view and CSV export are also provided.
  */
 
@@ -27,6 +28,7 @@ import {
   CreditCard,
   Package,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
@@ -41,6 +43,7 @@ import {
 } from '../../lib/orders';
 import type { OrderRecord } from '../../types/orders';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 const STATUS_LABELS: Record<string, string> = {
   confirmed: 'Confirmed',
@@ -74,6 +77,7 @@ type OrderStatus = OrderRecord['status'];
 
 export const AdminOrders: React.FC = () => {
   const { success, error: showError } = useToast();
+  const { isAdmin } = useAuth();
 
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +97,7 @@ export const AdminOrders: React.FC = () => {
   const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  const [stripeRefundId, setStripeRefundId] = useState('');
   const [refunding, setRefunding] = useState(false);
 
   const [submittingStatus, setSubmittingStatus] = useState<Set<string>>(new Set());
@@ -154,27 +159,35 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
+  /**
+   * Records a refund that the owner already issued in the Stripe dashboard.
+   * The Stripe secret key cannot live in the browser, so this only stores the
+   * bookkeeping on the order (amount, reason, optional Stripe refund id).
+   */
   const handleSubmitRefund = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundOrderId) return;
-    const order = orders.find((o) => o.orderNumber === refundOrderId);
-    if (!order) return;
-    const idempotencyKey = `refund-${refundOrderId}-${Date.now()}`;
+    const amountPence = parseInt(refundAmount, 10);
+    if (!Number.isInteger(amountPence) || amountPence <= 0) {
+      showError('Invalid amount', 'Enter the refunded amount in whole pence, greater than zero.');
+      return;
+    }
     setRefunding(true);
     try {
-      await ordersApi.refundOrder({
+      await ordersApi.recordManualRefund({
         orderNumber: refundOrderId,
-        amountPence: parseInt(refundAmount, 10) || 0,
+        amountPence,
         reason: refundReason || null,
-        idempotencyKey,
+        stripeRefundId: stripeRefundId || null,
       });
-      success('Refund processed', `${refundOrderId} refunded ${formatPence(parseInt(refundAmount, 10))}.`);
+      success('Refund recorded', `${refundOrderId} now shows ${formatPence(amountPence)} refunded.`);
       setRefundOrderId(null);
       setRefundAmount('');
       setRefundReason('');
+      setStripeRefundId('');
       await ordersRepository.listAllOrders().then(setOrders);
     } catch (err) {
-      showError('Refund failed', err instanceof Error ? err.message : 'Unknown error.');
+      showError('Could not record refund', err instanceof Error ? err.message : 'Unknown error.');
     } finally {
       setRefunding(false);
     }
@@ -227,7 +240,7 @@ export const AdminOrders: React.FC = () => {
         <div>
           <h2 className="font-serif text-2xl font-bold text-stone-900">Order Management</h2>
           <p className="text-xs text-stone-500 mt-1">
-            View, filter, and manage all orders. Status changes notify customers by email.
+            View, filter, and manage all orders. Status changes are recorded in the audit trail.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -527,7 +540,7 @@ export const AdminOrders: React.FC = () => {
                   })}
                 </select>
                 <p className="text-[10px] text-stone-500">
-                  Status changes notify the customer by email and are recorded in the audit log.
+                  Status changes are recorded in the audit log.
                 </p>
               </div>
             </div>
@@ -541,14 +554,15 @@ export const AdminOrders: React.FC = () => {
               </div>
 )}
 
-            {/* Refund action (admin only, paid orders) */}
-            {openOrder.paymentStatus === 'paid' && openOrder.status !== 'refunded' && (
+            {/* Refunds are admin-only in the rules, so staff never see the action. */}
+            {isAdmin && openOrder.paymentStatus !== 'refunded' && openOrder.refundedPence < openOrder.totalPence && (
               <div className="border-t border-stone-100 pt-4">
                 <p className="text-[10px] text-stone-500 uppercase tracking-wider font-semibold mb-3">
                   Refund
                 </p>
                 <p className="text-xs text-stone-500 mb-3">
-                  Refund amount cannot exceed the unrefunded total.
+                  Issue the card refund in Stripe, then record it here. The recorded total cannot
+                  exceed {formatPence(openOrder.totalPence - openOrder.refundedPence)}.
                 </p>
                 <button
                   type="button"
@@ -556,10 +570,12 @@ export const AdminOrders: React.FC = () => {
                     setRefundOrderId(openOrder.orderNumber);
                     setRefundAmount('');
                     setRefundReason('');
+                    setStripeRefundId('');
                   }}
                   className="text-xs font-medium text-[#c93c3c] hover:bg-red-50 rounded px-3 py-2 flex items-center gap-1"
                 >
-                  <CreditCard className="h-3 w-3" /> Refund {formatPence(openOrder.totalPence - openOrder.refundedPence)}
+                  <CreditCard className="h-3 w-3" /> Record refund of{' '}
+                  {formatPence(openOrder.totalPence - openOrder.refundedPence)}
                 </button>
               </div>
             )}
@@ -572,30 +588,86 @@ export const AdminOrders: React.FC = () => {
         <Modal
           isOpen={!!refundOrderId}
           onClose={() => setRefundOrderId(null)}
-          title="Process Refund"
+          title="Record a refund"
           maxWidth="md"
         >
           <form onSubmit={handleSubmitRefund} className="space-y-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">
+              <p className="font-semibold">Issue the refund in Stripe first.</p>
+              <p>
+                Card refunds need the Stripe secret key, which never runs in the browser. Refund the
+                payment in Stripe, then record it here so the order, the audit trail and the CSV
+                exports stay accurate.
+              </p>
+              {(() => {
+                const order = orders.find((o) => o.orderNumber === refundOrderId);
+                const intent = order?.stripePaymentIntentId;
+                return intent ? (
+                  <a
+                    href={`https://dashboard.stripe.com/payments/${intent}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+                  >
+                    Open this payment in Stripe <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <p className="mt-2">This order has no Stripe payment intent recorded.</p>
+                );
+              })()}
+            </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                Amount (pence)
+              <label
+                htmlFor="refund-amount"
+                className="text-[10px] font-bold uppercase tracking-wider text-stone-500"
+              >
+                Amount refunded (pence)
               </label>
               <input
+                id="refund-amount"
                 type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                required
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
               />
+              {refundAmount && Number.isFinite(parseInt(refundAmount, 10)) && (
+                <p className="text-[10px] text-stone-500">
+                  = {formatPence(parseInt(refundAmount, 10))}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+              <label
+                htmlFor="refund-reason"
+                className="text-[10px] font-bold uppercase tracking-wider text-stone-500"
+              >
                 Reason (optional)
               </label>
               <input
+                id="refund-reason"
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
                 className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                 placeholder="e.g. Customer request"
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="refund-stripe-id"
+                className="text-[10px] font-bold uppercase tracking-wider text-stone-500"
+              >
+                Stripe refund id (optional)
+              </label>
+              <input
+                id="refund-stripe-id"
+                value={stripeRefundId}
+                onChange={(e) => setStripeRefundId(e.target.value)}
+                className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                placeholder="e.g. re_3QabC..."
               />
             </div>
             <div className="flex justify-end gap-2 pt-4 border-t border-stone-100">
@@ -613,7 +685,7 @@ export const AdminOrders: React.FC = () => {
                 type="submit"
                 disabled={refunding || !refundAmount}
               >
-                {refunding ? 'Refunding…' : 'Confirm Refund'}
+                {refunding ? 'Recording…' : 'Record refund'}
               </Button>
             </div>
           </form>

@@ -6,6 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+# Firebase Functions emulator secrets (Stripe, Cloudinary) - never commit
+*.secret.local
+# Firebase service account keys - never commit
+*firebase-adminsdk*.json
+*service-account*.json
 .aistudio/
 .firebase/
 firebase-debug.log

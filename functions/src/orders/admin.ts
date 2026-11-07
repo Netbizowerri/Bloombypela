@@ -112,7 +112,8 @@ export const updateOrderStatus = onCall(
       }
 
       const now = Timestamp.now();
-      const historyEntry = { status, at: now, note: note ?? undefined };
+      // Firestore rejects undefined array elements, so omit an absent note.
+      const historyEntry = note ? { status, at: now, note } : { status, at: now };
 
       tx.update(orderRef, {
         status,

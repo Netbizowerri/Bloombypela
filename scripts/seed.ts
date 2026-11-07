@@ -1,5 +1,6 @@
 import { initializeApp, getApps, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { defaultProjectId } from './lib/project.js';
 import { SEED_PRODUCTS } from '../src/data/seed/products.js';
 import { SEED_BUNDLES } from '../src/data/seed/bundles.js';
 import { SEED_SUBSCRIPTION_PLANS } from '../src/data/seed/subscriptionPlans.js';
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
   } else {
     process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8080';
     initializeApp({
-      projectId: process.env.GCLOUD_PROJECT ?? 'bloom-by-pela-emulator',
+      projectId: defaultProjectId(),
     });
   }
 

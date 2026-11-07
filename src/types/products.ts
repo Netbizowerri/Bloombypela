@@ -20,6 +20,11 @@ export interface ProductVariant {
   sku: string;
   stock: number; // For snacks; For juices this reflects immediate bottle inventory
   isDefault?: boolean;
+  /**
+   * Optional photo for this specific size/pack. When present the storefront
+   * shows it in place of the product's first image while the variant is selected.
+   */
+  image?: ImageAsset;
 }
 
 export interface Product {
@@ -41,7 +46,6 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   isPopular?: boolean;
-  origin?: 'Nigeria' | 'UK Prepared' | 'West Africa';
 }
 
 export interface ProductBundle {

@@ -25,7 +25,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'plantain-chips',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '150g',
     description:
       'Crispy, golden-sliced plantain kettle-cooked to perfection. Sourced directly from trusted Nigerian smallholders, naturally sweet and lightly seasoned with sea salt.',
@@ -51,7 +50,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'coconut-chips',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '100g',
     description:
       'Fragrant, delicate strips of mature Nigerian coconut, slow-roasted with a kiss of organic cane sugar and a hint of warm vanilla.',
@@ -77,7 +75,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'chin-chin',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '200g',
     description:
       'Traditional Nigerian sweet pastry bites spiced with fragrant grated nutmeg, pure butter, and Madagascar vanilla. Golden and dangerously crunchy.',
@@ -102,7 +99,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'groundnuts',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '280g–500g',
     description:
       'Classic West African sand-roasted peanuts with a deep nutty crunch and golden toastiness. A legendary accompaniment to drinks.',
@@ -148,7 +144,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'cashews',
     type: 'snack',
     category: 'Snacks',
-    origin: 'West Africa',
     weightOrVolume: '180g',
     description:
       'Whole jumbo cashew nuts dry-roasted with botanical Nigerian herbs and Atlantic sea salt.',
@@ -172,7 +167,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'tropical-bloom',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Our flagship sunshine elixir: cold-pressed ripe mango, sweet pineapples, passion fruit, fresh orange, and cold-extracted ginger. Pure liquid sunshine.',
@@ -201,7 +195,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'skin-glow-skin-flow',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'A nutrient-dense radiance blend made with crisp English carrots, organic sweet orange, turmeric root, red apple, and cold-pressed lemon.',
@@ -226,7 +219,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'detox-juice-blend',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Ultra-cleansing cold-pressed British cucumber, tender celery stalks, crisp green Granny Smith apples, spinach, and fresh mint.',
@@ -250,7 +242,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'zobo',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Slow-brewed Nigerian dried hibiscus calyces (Sorrel) infused with crushed cloves, fresh ginger, sweet pineapple rind, and cinnamon bark. Rich in antioxidants.',
@@ -276,7 +267,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'ginger-shots',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '60ml',
     description:
       'Intense, immune-boosting cold-pressed ginger root combined with organic Sicilian lemon and a pinch of cayenne pepper.',
