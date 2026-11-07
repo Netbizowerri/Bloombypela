@@ -1,6 +1,7 @@
 import { getFunctions, connectFunctionsEmulator, httpsCallable, type Functions } from 'firebase/functions';
 import { app } from './firebase';
 
+// Keep the client in the same region as functions/src/lib/config.ts.
 export const functions: Functions = getFunctions(app!, 'europe-west2');
 
 /**

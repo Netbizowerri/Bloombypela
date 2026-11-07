@@ -77,6 +77,13 @@ function validateProduct(input: unknown): ProductInput {
   return parsed.data;
 }
 
+/** Firestore rejects undefined values unless ignoreUndefinedProperties is enabled. */
+function omitUndefined<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, field]) => field !== undefined),
+  ) as T;
+}
+
 function writeAuditLog(
   db: FirebaseFirestore.Firestore,
   identity: { uid: string; email: string | null },
@@ -108,7 +115,7 @@ export const createProduct = onCall(
     const identity = requireRole(request, ['admin', 'staff']);
     const input = validateProduct(request.data);
     const db = adminDb();
-    const product: Product = {
+    const product: Product = omitUndefined({
       id: input.id,
       name: input.name,
       slug: input.slug,
@@ -127,7 +134,7 @@ export const createProduct = onCall(
       seoTitle: input.seoTitle ?? undefined,
       seoDescription: input.seoDescription ?? undefined,
       isPopular: input.isPopular,
-    };
+    });
     try {
       await db.collection('products').doc(input.id).set(product);
       await writeAuditLog(
@@ -167,7 +174,7 @@ export const updateProduct = onCall(
     const previous = snap.data() as Partial<Product>;
     try {
       await ref.set(
-        {
+        omitUndefined({
           ...previous,
           name: input.name,
           slug: input.slug,
@@ -187,7 +194,7 @@ export const updateProduct = onCall(
           seoDescription: input.seoDescription ?? undefined,
           isPopular: input.isPopular,
           updatedAt: FieldValue.serverTimestamp(),
-        },
+        }),
         { merge: true },
       );
       await writeAuditLog(
@@ -257,13 +264,13 @@ export const duplicateProduct = onCall(
     const snap = await db.collection('products').doc(id).get();
     if (!snap.exists) throw new HttpsError('not-found', `Product ${id} not found.`);
     const existing = snap.data() as Product;
-    const dup: Product = {
+    const dup: Product = omitUndefined({
       ...existing,
       id: newId,
       slug: existing.slug + '-copy',
       name: existing.name + ' (Copy)',
       isPopular: undefined,
-    };
+    });
     await db.collection('products').doc(newId).set(dup);
     await writeAuditLog(db, identity, 'duplicate', 'product', newId, {
       sourceId: id,
