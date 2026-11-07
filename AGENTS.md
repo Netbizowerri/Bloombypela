@@ -5,6 +5,24 @@ Read this file fully before every task. These rules override any conflicting ins
 ## Project
 Production e-commerce web app for Bloom by Pela (Newcastle upon Tyne, UK): premium packaged snacks and fresh juices, one-off orders and weekly juice subscriptions. Delivery logistics are handled by the owner; the app only stores delivery rules, records what must be delivered, produces delivery lists and emails customers. Do not build courier, routing, rider or live-tracking features.
 
+### Current billing constraint (Spark plan) - owner decision
+The Firebase project is on the free Spark plan, so Cloud Functions cannot be
+deployed. The admin portal therefore writes catalogue, promotion and delivery
+configuration directly to Firestore from the browser, authorised by the
+`role` custom claim and validated in `firestore.rules`. Rules 3 and 4 below are
+narrowed accordingly, not abandoned:
+
+- orders, subscriptions and deliveries are still never created by a client;
+- staff may change only `status`, `statusHistory`, `internalNote`, `updatedAt`;
+- admins may additionally record `refundedPence`/`paymentStatus`, capped at the
+  order total;
+- totals, line items, delivery fees and discounts are never client-writable.
+
+Checkout (`createCheckoutSession`), `quoteCart`, Stripe webhooks, Resend emails
+and the reservation-expiry schedule require a server and stay disabled until
+Blaze is enabled. Product images use an unsigned Cloudinary preset, so they work
+on Spark.
+
 ## Stack (fixed, do not swap)
 - Frontend: React 19, TypeScript (strict), Vite SPA, Tailwind CSS 4, motion (Framer Motion successor already installed), lucide-react, React Router with BROWSER routing (never hash routing).
 - Backend: Firebase Auth, Cloud Firestore (europe-west2), Cloud Functions 2nd gen (TypeScript, region europe-west2), Firebase Hosting, App Check.

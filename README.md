@@ -34,34 +34,93 @@ and `java -version`.
    (Firebase console > Project settings > Your apps). For emulator work the API
    key only needs to be a non-empty placeholder value, for example
    `VITE_FIREBASE_API_KEY="demo-key"`.
-3. Set `VITE_USE_EMULATORS="true"` in `.env` to connect the browser to the local
-   emulators. Emulator wiring only runs when both `import.meta.env.DEV` and
-   `VITE_USE_EMULATORS === "true"` are true, so production builds never connect
-   to an emulator. Never enable it on the live site.
+3. `npm run dev` also loads `.env.development` (git-ignored), which sets
+   `VITE_USE_EMULATORS="true"` and the public Cloudinary values. Emulator wiring
+   only runs when both `import.meta.env.DEV` and `VITE_USE_EMULATORS === "true"`
+   are true, so production builds never connect to an emulator. Delete
+   `.env.development` to point the dev server back at the live project (only
+   useful once functions are deployed there).
 4. Start the emulators (Auth `9099`, Firestore `8080`, Functions `5001`,
    Hosting `5000`, Emulator UI `4000`):
 
    ```bash
-   npm run build          # builds dist/ for the Hosting emulator
    npm run emulators
    ```
 
-   The Functions emulator is pre-built automatically. Sign-up against the Auth
-   emulator works with any email/password, and the Emulator UI at
-   <http://127.0.0.1:4000> shows the created users and documents.
+   The Functions emulator is pre-built automatically.
+
+5. In another terminal, seed the catalogue into the Firestore emulator:
+
+   ```bash
+   npm run seed
+   ```
+
+6. Create a disposable local admin in the Auth emulator (no service account
+   needed). This account exists only inside the emulator and is never part of
+   the real Firebase project:
+
+   ```bash
+   npm run dev:admin -- admin@bloombypela.local "LocalOnly-1234"
+   ```
+
+   Sign in at <http://localhost:3000/login> with those credentials. The
+   Emulator UI at <http://127.0.0.1:4000> shows the users and documents. To use
+   the real Firebase project and its real owner accounts instead, set
+   `VITE_USE_EMULATORS="false"` in `.env.development` (or delete that file) and
+   restart `npm run dev`.
+
+7. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+### Spark-plan architecture (no Cloud Functions)
+
+This project runs on the free Spark plan, which cannot execute Cloud Functions.
+The admin portal therefore talks to Firestore directly and `firestore.rules` is
+the security boundary:
+
+| Admin action | How it runs | Enforced by |
+| --- | --- | --- |
+| Products (create, edit, hide, duplicate) | Firestore write from the browser | `staff`/`admin` claim + document shape validation |
+| Delivery areas, schedules, closed dates, capacity | Firestore write | `staff`/`admin` claim + money/field validation |
+| Promotions | Firestore write | `admin` claim only |
+| Public delivery settings | Firestore write | `admin` claim only |
+| Order status changes | One transaction: status + `statusHistory` + `auditLog` | `staff`/`admin`, only `status`/`statusHistory`/`internalNote`/`updatedAt` |
+| Refund bookkeeping | One transaction: `refundedPence` + `paymentStatus` + audit | `admin` only, cannot exceed the order total |
+| Dashboard stats, CSV export | Computed in the browser from data staff may read | Firestore read rules |
+
+Image upload works on Spark: the browser posts to an unsigned Cloudinary
+preset, so no function or secret is involved. A Cloudinary URL can also be
+pasted directly.
+
+What a Spark project cannot do is **take payments**: `createCheckoutSession`,
+`quoteCart`, the Stripe webhook, Resend emails and the 5-minute reservation
+expiry job all need a server. Until Blaze is enabled, checkout is unavailable
+and refunds must be issued in the Stripe dashboard, then recorded against the
+order in the admin portal.
 
 ## Firebase project
 
-`.firebaserc` currently contains the **PLACEHOLDER** project id
-`bloom-by-pela-placeholder`. Replace it with the real project id before any
-`firebase deploy`:
-
-```json
-{ "projects": { "default": "your-real-project-id" } }
-```
+`.firebaserc` contains the project id `bloombypela-ec784`. Deploying Cloud
+Functions additionally needs the **Blaze** plan; 2nd gen functions are not
+available on Spark. Everything in the admin portal above works without it.
 
 Never commit service account keys, `.env` files or Stripe/Resend/Cloudinary
 secrets. Server secrets belong in Cloud Functions via `defineSecret`.
+
+### Setting the admin role
+
+Roles are custom claims set with the Admin SDK from your machine, which works on
+Spark (a service account is not a paid feature). After deploying rules:
+
+```bash
+npm run set-role -- admin owner@example.com
+npm run set-role -- staff shop@example.com
+```
+
+The user must sign out and back in for the new claim to reach their ID token.
 
 ### Hosting
 
@@ -78,13 +137,18 @@ the rewrite:
 
 - Every Firestore path is default deny.
 - Catalogue and public settings are publicly readable; writes require the
-  `admin` custom claim.
-- Operational data (`dateCapacity`, `promotions`, `settings`) is staff-readable
-  and admin-writable.
+  `staff` or `admin` custom claim and are shape-validated in the rules.
+- Operational data (`dateCapacity`) is staff-readable and staff-writable;
+  `promotions` and `settings` are staff-readable and admin-writable only.
 - Customers may create and update only their own `customers/{uid}` document,
-  and only the allowed profile fields. `stripeCustomerId`, roles and all order,
-  subscription, delivery, capacity, promotion-usage and audit writes are
-  server-only.
+  and only the allowed profile fields. `stripeCustomerId` and roles are
+  rejected.
+- Orders are never created or deleted by a client and can never be repriced in
+  the browser. Staff may change only `status`, `statusHistory`, `internalNote`
+  and `updatedAt`; admins may additionally record `refundedPence` and
+  `paymentStatus`, capped at the order total.
+- `auditLog` is append-only: staff/admin may add an entry for their own uid with
+  the request server timestamp, and nobody may edit or delete one.
 - `stripeEvents`, `reservations`, `stockHolds` and `counters` are never readable
   or writable by clients.
 - Firebase Storage is deny-all because images are hosted on Cloudinary.
@@ -107,6 +171,36 @@ npm run lint              # app + scripts + functions (tsc --noEmit)
 npm run build             # app production build
 npm run build:functions   # functions compile to functions/lib
 ```
+
+## Product images (Cloudinary)
+
+The project runs without Firebase Storage. Admin-uploaded product images go
+straight from the browser to Cloudinary using an **unsigned upload preset**, so
+no Cloud Function, API key or API secret is involved and the flow works on the
+free Spark plan as well as on Blaze.
+
+Each product can have up to three images. The first image is the listing/hero
+photo; the others appear in the product gallery. Uploads are stored under
+`bloom-by-pela/products/`. An existing image can also be added by pasting its
+https URL; the public id is read from Cloudinary URLs for display sizing.
+
+### Configuration
+
+Create an **unsigned** preset once in the Cloudinary dashboard (Settings >
+Upload > Upload presets), optionally with the folder `bloom-by-pela/products`,
+then set the public values in `.env` (and in the build environment used for the
+live site):
+
+```
+VITE_CLOUDINARY_CLOUD_NAME=titznrnk
+VITE_CLOUDINARY_UPLOAD_PRESET=bloombypela
+```
+
+`.env.development` already carries these values for local development. No
+Cloudinary secret is ever needed by the app. Deleting a Cloudinary asset does
+need the API secret, so removing an image from a product only removes the
+reference from Firestore; clean up orphaned assets in the Cloudinary media
+library.
 
 ## Payments (Stripe)
 
@@ -156,7 +250,7 @@ automatic payment methods enabled in the dashboard (card, Apple Pay, Google Pay)
 
 1. Start the emulators (`npm run emulators`). The Functions emulator exposes
    `stripeWebhook` at:
-   `http://127.0.0.1:5001/bloom-by-pela-placeholder/europe-west2/stripeWebhook`
+   `http://127.0.0.1:5001/bloombypela-ec784/europe-west2/stripeWebhook`
 2. Create `functions/.secret.local` (git-ignored) with your **test** key. Run
    `stripe listen` once, copy the printed `whsec_...`, and add it:
 
@@ -168,7 +262,7 @@ automatic payment methods enabled in the dashboard (card, Apple Pay, Google Pay)
 3. Forward Stripe events to the emulator:
 
    ```bash
-   stripe listen --forward-to http://127.0.0.1:5001/bloom-by-pela-placeholder/europe-west2/stripeWebhook
+   stripe listen --forward-to http://127.0.0.1:5001/bloombypela-ec784/europe-west2/stripeWebhook
    ```
 
 4. With `npm run dev` running, add items to the basket and pay on the Stripe
@@ -237,8 +331,16 @@ Functions. Roles are granted with `scripts/set-role.ts`.
    on login) before the new claim is visible. Tokens issued before the change
    keep the old role until they refresh.
 
-Against the emulator, no service account is needed — start the emulators and
-point the script at the Auth emulator:
+Against the emulator, no service account is needed and the easiest path is the
+dedicated bootstrap script (creates the user if needed, resets the password and
+sets the claim):
+
+```powershell
+npm run dev:admin -- owner@example.com "LocalOnly-1234"
+npm run dev:admin -- packer@example.com "LocalOnly-1234" staff
+```
+
+`scripts/set-role.ts` also works against the emulator when its host is set:
 
 ```powershell
 $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"

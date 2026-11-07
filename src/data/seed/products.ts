@@ -1,6 +1,21 @@
 // PLACEHOLDER: Seed catalogue content. Replace with real products before launch;
 // every image URL and piece of copy here is placeholder material.
-import type { Product } from '../../types/products.js';
+import type { ImageAsset, Product } from '../../types/products.js';
+
+// Owner-supplied photos for the three Groundnut pack sizes. Prices below are
+// PLACEHOLDER values and must be confirmed by the owner before launch.
+const GROUNDNUT_280G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_280g.jpg',
+  publicId: 'Groundnut_280g',
+};
+const GROUNDNUT_320G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_320g.jpg',
+  publicId: 'Groundnut_320g',
+};
+const GROUNDNUT_500G_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_500g.jpg',
+  publicId: 'Groundnut_500g',
+};
 
 export const SEED_PRODUCTS: Product[] = [
   // 1. SNACKS (Life in Every Bite) - Sourced from Nigeria
@@ -10,7 +25,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'plantain-chips',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '150g',
     description:
       'Crispy, golden-sliced plantain kettle-cooked to perfection. Sourced directly from trusted Nigerian smallholders, naturally sweet and lightly seasoned with sea salt.',
@@ -36,7 +50,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'coconut-chips',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '100g',
     description:
       'Fragrant, delicate strips of mature Nigerian coconut, slow-roasted with a kiss of organic cane sugar and a hint of warm vanilla.',
@@ -62,7 +75,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'chin-chin',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
     weightOrVolume: '200g',
     description:
       'Traditional Nigerian sweet pastry bites spiced with fragrant grated nutmeg, pure butter, and Madagascar vanilla. Golden and dangerously crunchy.',
@@ -87,23 +99,44 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'groundnuts',
     type: 'snack',
     category: 'Snacks',
-    origin: 'Nigeria',
-    weightOrVolume: '200g',
+    weightOrVolume: '280g–500g',
     description:
       'Classic West African sand-roasted peanuts with a deep nutty crunch and golden toastiness. A legendary accompaniment to drinks.',
     shortDescription: 'Traditional sand-roasted peanuts with rich nutty depth.',
     ingredients: ['Selected Peanuts (Groundnuts)', 'Fine Sea Salt'],
     allergens: ['Peanuts'],
-    images: [
-      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Groundnut', publicId: 'Bloombypela_Groundnut' },
-      { url: 'https://images.unsplash.com/photo-1567894340315-735d7c361db0?auto=format&fit=crop&w=800&q=80', publicId: '' },
-    ],
+    images: [GROUNDNUT_280G_IMAGE, GROUNDNUT_320G_IMAGE, GROUNDNUT_500G_IMAGE],
     status: 'active',
     variants: [
-      { id: 'var-gn-200', name: '200g Pouch', pricePence: 300, sku: 'BBP-SNK-GN200', stock: 40, isDefault: true },
+      {
+        id: 'var-gn-280',
+        name: '280g Pouch',
+        pricePence: 380,
+        sku: 'BBP-SNK-GN280',
+        stock: 40,
+        isDefault: true,
+        image: GROUNDNUT_280G_IMAGE,
+      },
+      {
+        id: 'var-gn-320',
+        name: '320g Pouch',
+        pricePence: 430,
+        sku: 'BBP-SNK-GN320',
+        stock: 30,
+        image: GROUNDNUT_320G_IMAGE,
+      },
+      {
+        id: 'var-gn-500',
+        name: '500g Pouch',
+        pricePence: 600,
+        sku: 'BBP-SNK-GN500',
+        stock: 18,
+        image: GROUNDNUT_500G_IMAGE,
+      },
     ],
     seoTitle: 'Groundnuts | Bloom by Pela Newcastle',
-    seoDescription: 'Classic sand-roasted Nigerian groundnuts with golden nutty crunch.',
+    seoDescription:
+      'Classic sand-roasted Nigerian groundnuts with golden nutty crunch, available in 280g, 320g and 500g pouches.',
   },
   {
     id: 'prod-snack-cashews',
@@ -111,7 +144,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'cashews',
     type: 'snack',
     category: 'Snacks',
-    origin: 'West Africa',
     weightOrVolume: '180g',
     description:
       'Whole jumbo cashew nuts dry-roasted with botanical Nigerian herbs and Atlantic sea salt.',
@@ -135,7 +167,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'tropical-bloom',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Our flagship sunshine elixir: cold-pressed ripe mango, sweet pineapples, passion fruit, fresh orange, and cold-extracted ginger. Pure liquid sunshine.',
@@ -164,7 +195,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'skin-glow-skin-flow',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'A nutrient-dense radiance blend made with crisp English carrots, organic sweet orange, turmeric root, red apple, and cold-pressed lemon.',
@@ -189,7 +219,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'detox-juice-blend',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Ultra-cleansing cold-pressed British cucumber, tender celery stalks, crisp green Granny Smith apples, spinach, and fresh mint.',
@@ -213,7 +242,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'zobo',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '330ml',
     description:
       'Slow-brewed Nigerian dried hibiscus calyces (Sorrel) infused with crushed cloves, fresh ginger, sweet pineapple rind, and cinnamon bark. Rich in antioxidants.',
@@ -239,7 +267,6 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'ginger-shots',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    origin: 'UK Prepared',
     weightOrVolume: '60ml',
     description:
       'Intense, immune-boosting cold-pressed ginger root combined with organic Sicilian lemon and a pinch of cayenne pepper.',

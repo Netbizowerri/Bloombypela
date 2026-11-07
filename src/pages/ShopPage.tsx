@@ -341,7 +341,7 @@ export const ShopPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {filteredProducts.map((product) => {
             const activeVariant = getActiveVariant(product);
-            const featureImage = product.images[0];
+            const featureImage = activeVariant.image ?? product.images[0];
 
             return (
               <div

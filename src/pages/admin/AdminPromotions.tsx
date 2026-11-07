@@ -1,12 +1,12 @@
 /**
  * AdminPromotions - manage discount/promo codes.
  *
- * Full CRUD for promotions with zod validation on the client and server.
- * Each write goes through a callable function that also writes an auditLog
- * entry. Client cannot write auditLog directly.
+ * Full CRUD for promotions with zod validation in the form. Each write goes
+ * straight to Firestore (admin claim required by the rules) and appends an
+ * auditLog entry.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,6 +37,7 @@ export const AdminPromotions: React.FC = () => {
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,20 +59,22 @@ export const AdminPromotions: React.FC = () => {
   const isSubmitting = (id: string) => submitting.has(id);
 
   const loadPromotions = useCallback(async () => {
-    // In this section, promotions are read from Firestore via the admin callables.
-    // For now, we load them from the local seed data as a placeholder.
-    // A real implementation would add a listPromotions callable.
     setLoading(true);
+    setLoadError(null);
     try {
-      // Placeholder: promotions would be fetched from Firestore
-      // This section's focus is the quoteCart callable and checkout flow
-      setPromotions([]);
+      setPromotions(await promotionsApi.listPromotions());
     } catch (err) {
-      showError('Load failed', err instanceof Error ? err.message : 'Unable to load promotions');
+      const message = err instanceof Error ? err.message : 'Unable to load promotions.';
+      setLoadError(message);
+      showError('Load failed', message);
     } finally {
       setLoading(false);
     }
   }, [showError]);
+
+  useEffect(() => {
+    void loadPromotions();
+  }, [loadPromotions]);
 
   const resetForm = useCallback(() => {
     setEditingId(null);
@@ -135,12 +138,13 @@ export const AdminPromotions: React.FC = () => {
         endsAt: '',
         active: true,
       });
+      await loadPromotions();
     } catch (err) {
       showError('Save failed', err instanceof Error ? err.message : 'Unable to save promotion');
     } finally {
       setSubmitting(new Set());
     }
-  }, [editingId, form, showError, success]);
+  }, [editingId, form, loadPromotions, showError, success]);
 
   const handleToggle = useCallback(async (promo: Promotion) => {
     setSubmitting(new Set([promo.id]));
@@ -187,7 +191,7 @@ export const AdminPromotions: React.FC = () => {
             Promotions &amp; Discount Codes
           </h2>
           <p className="text-xs text-stone-500 mt-1">
-            Create and manage discount codes for the checkout. Codes are validated server-side.
+            Create and manage discount codes for the checkout.
           </p>
         </div>
         <Button
@@ -340,12 +344,20 @@ export const AdminPromotions: React.FC = () => {
         </div>
       )}
 
-      {/* Promotions list (placeholder - empty until Firestore read is wired) */}
+      {/* Promotions list */}
       <div className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
         <h3 className="font-serif text-base font-bold text-stone-900 mb-4">
           Active promotions
         </h3>
-        {promotions.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="py-12 text-center text-stone-500 text-xs">
+            <p className="text-[#c93c3c] font-medium">Promotions could not be loaded.</p>
+            <p className="mt-1">{loadError}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => void loadPromotions()}>
+              Try again
+            </Button>
+          </div>
+        ) : promotions.length === 0 ? (
           <div className="py-12 text-center text-stone-400 text-xs">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>No promotions configured yet.</p>

@@ -7,22 +7,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag,
   TrendingUp,
-  RotateCcw,
   AlertCircle,
   Truck,
   Calendar,
-  Package,
-  Clock,
   Loader2,
   RefreshCw,
+  ServerCrash,
 } from 'lucide-react';
-import { formatPence, formatLondonDate } from '../../lib/utils';
+import { formatPence } from '../../lib/utils';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
 import { ordersApi } from '../../lib/orders';
+import { describeCallableError } from '../../lib/callableError';
 
 const STATUS_LABELS: Record<string, string> = {
   confirmed: 'Confirmed',
@@ -36,33 +34,72 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export const AdminDashboard: React.FC = () => {
-  const { success, error: showError } = useToast();
+  const { error: showError } = useToast();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await ordersApi.getDashboardStats({});
-      setStats(response.data);
-    } catch (err) {
-      showError('Stats failed', err instanceof Error ? err.message : 'Unable to load stats.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [showError]);
+  const loadStats = useCallback(
+    async (mode: 'initial' | 'refresh' = 'initial') => {
+      if (mode === 'refresh') setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+      try {
+        const response = await ordersApi.getDashboardStats({});
+        setStats(response.data);
+      } catch (err) {
+        const message = describeCallableError(err, 'Unable to load dashboard stats.');
+        setError(message);
+        showError('Stats failed', message);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [showError],
+  );
 
   useEffect(() => {
-    void loadStats();
+    void loadStats('initial');
   }, [loadStats]);
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="py-20 text-center text-stone-500 text-xs">
         <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
         Loading dashboard…
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="space-y-4 text-left">
+        <h2 className="font-serif text-2xl font-bold text-stone-900">Admin Dashboard</h2>
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-900"
+        >
+          <div className="flex items-start gap-3">
+            <ServerCrash className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="font-semibold text-sm">Stats could not be loaded</p>
+              <p className="text-xs leading-relaxed">{error}</p>
+            </div>
+          </div>
+          <div className="mt-4 pl-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void loadStats('initial')}
+              disabled={refreshing}
+              leftIcon={<RefreshCw className="h-4 w-4" />}
+            >
+              {refreshing ? 'Retrying…' : 'Try again'}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -76,19 +113,28 @@ export const AdminDashboard: React.FC = () => {
         <div>
           <h2 className="font-serif text-2xl font-bold text-stone-900">Admin Dashboard</h2>
           <p className="text-xs text-stone-500 mt-1">
-            Live figures computed server-side via getDashboardStats.
+            Live figures computed from your Firestore data. Admins and staff only.
           </p>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={loadStats}
+          onClick={() => void loadStats('refresh')}
           disabled={refreshing}
           leftIcon={<RefreshCw className="h-4 w-4" />}
         >
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </Button>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900"
+        >
+          Refresh failed: {error}
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -205,9 +205,11 @@ export const CartDrawer: React.FC = () => {
                       <div className="relative shrink-0">
                         <img
                           src={
-                            item.product.images[0]
-                              ? cld(item.product.images[0].url, 200)
-                              : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=200&q=80'
+                            item.variant.image
+                              ? cld(item.variant.image.url, 200)
+                              : item.product.images[0]
+                                ? cld(item.product.images[0].url, 200)
+                                : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=200&q=80'
                           }
                           alt={item.product.name}
                           className="h-20 w-20 sm:h-22 sm:w-22 object-cover rounded-xl border border-stone-200/90 bg-stone-100 shadow-2xs"

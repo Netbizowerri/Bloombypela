@@ -22,6 +22,7 @@ export interface ProductVariant {
   sku: string;
   stock: number;
   isDefault?: boolean;
+  image?: ImageAsset;
 }
 
 export interface Product {
@@ -43,7 +44,6 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   isPopular?: boolean;
-  origin?: string;
 }
 
 export interface ProductBundle {

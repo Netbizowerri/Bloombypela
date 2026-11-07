@@ -15,8 +15,22 @@ function getAdminApp(): App {
   return initializeApp();
 }
 
+let undefinedPropertiesConfigured = false;
+
+/**
+ * Firestore refuses to write `undefined` (unlike JSON), and every optional
+ * callable field would otherwise have to be stripped by hand. Callable inputs
+ * model "not provided" as undefined, so undefined properties are ignored on
+ * write instead. Settings can only be applied before the client is first used,
+ * which is why this is guarded.
+ */
 export function adminDb(): Firestore {
-  return getFirestore(getAdminApp());
+  const db = getFirestore(getAdminApp());
+  if (!undefinedPropertiesConfigured) {
+    db.settings({ ignoreUndefinedProperties: true });
+    undefinedPropertiesConfigured = true;
+  }
+  return db;
 }
 
 export function adminAuth(): Auth {

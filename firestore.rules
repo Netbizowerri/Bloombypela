@@ -1,9 +1,25 @@
 rules_version = '2';
 
 // Bloom by Pela - Firestore security rules.
-// Default deny. Client writes are limited to a customer's own profile document;
-// every order, subscription, delivery, stock, capacity and promotion usage change
-// is written by Cloud Functions with the Admin SDK (which bypasses these rules).
+//
+// Default deny.
+//
+// This project runs on the Firebase Spark plan, which cannot execute Cloud
+// Functions. The admin portal therefore writes catalogue, promotion and
+// delivery configuration directly from the browser. Authorisation is enforced
+// here, not in the UI:
+//
+//   * every admin collection below is writable only by a `staff` or `admin`
+//     custom claim (promotions and public settings: `admin` only);
+//   * the written document is shape-validated, so a bypassed form still cannot
+//     store negative fees or out-of-range product fields;
+//   * orders are never created or deleted by a client, and may only be updated
+//     in the narrow ways the dashboard needs (status fields, refund fields);
+//   * `auditLog` entries can be created by staff but never forged (uid must be
+//     the caller, createdAt must be the request server timestamp) and never
+//     edited or deleted;
+//   * Stripe webhook records, stock reservations and counters stay server-only
+//     and have no client access at all.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -32,12 +48,46 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
-    // Public catalogue: public read, admin write
+    // Public catalogue: public read, staff/admin write
     // ---------------------------------------------------------------------
     match /products/{productId} {
+      // Shape check for admin writes. Prices live in `variants`; Firestore rules
+      // cannot iterate a list, so the list is bounded here and the per-variant
+      // price is validated by the form and by the checkout pricing code.
+      function productIsValid() {
+        let data = request.resource.data;
+        return data.name is string
+          && data.name.size() > 0
+          && data.name.size() <= 200
+          && data.slug is string
+          && data.slug.size() > 0
+          && data.slug.size() <= 200
+          && data.type is string
+          && data.type in ['snack', 'juice']
+          && data.category is string
+          && data.category.size() <= 100
+          && data.description is string
+          && data.description.size() <= 4000
+          && data.status is string
+          && data.status in ['active', 'hidden', 'seasonal']
+          && data.weightOrVolume is string
+          && data.weightOrVolume.size() <= 100
+          && data.images is list
+          && data.images.size() <= 3
+          && data.ingredients is list
+          && data.ingredients.size() <= 50
+          && data.allergens is list
+          && data.allergens.size() <= 14
+          && data.variants is list
+          && data.variants.size() >= 1
+          && data.variants.size() <= 20;
+      }
+
       // Hidden products are only visible to staff.
       allow read: if isStaff() || resource.data.status != 'hidden';
-      allow write: if isAdmin();
+      allow create, update: if isStaff() && productIsValid();
+      // Products are hidden (soft delete), never removed, so order history stays readable.
+      allow delete: if false;
 
       match /variants/{variantId} {
         function parentIsVisible() {
@@ -59,19 +109,64 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ---------------------------------------------------------------------
+    // Delivery configuration: public read, staff/admin write
+    // ---------------------------------------------------------------------
     match /deliveryAreas/{areaId} {
+      function areaIsValid() {
+        let data = request.resource.data;
+        return data.outwardCode is string
+          && data.outwardCode.size() > 0
+          && data.outwardCode.size() <= 10
+          && data.areaName is string
+          && data.areaName.size() > 0
+          && data.areaName.size() <= 100
+          && data.feePence is int
+          && data.feePence >= 0
+          && data.feePence <= 100000
+          && data.minimumOrderPence is int
+          && data.minimumOrderPence >= 0
+          && data.minimumOrderPence <= 1000000
+          && data.isActive is bool;
+      }
+
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isStaff() && areaIsValid();
+      allow delete: if isStaff();
     }
 
     match /deliverySchedule/{dayId} {
+      function scheduleIsValid() {
+        let data = request.resource.data;
+        return data.weekday is int
+          && data.weekday >= 1
+          && data.weekday <= 7
+          && data.cutoffTime is string
+          && data.cutoffTime.matches('^[0-2][0-9]:[0-5][0-9]$')
+          && data.leadDays is int
+          && data.leadDays >= 0
+          && data.leadDays <= 30
+          && data.isActive is bool;
+      }
+
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isStaff() && scheduleIsValid();
+      allow delete: if isStaff();
     }
 
     match /closedDates/{dateId} {
+      function closedDateIsValid() {
+        let data = request.resource.data;
+        return data.date is string
+          && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && data.reason is string
+          && data.reason.size() > 0
+          && data.reason.size() <= 200;
+      }
+
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isStaff() && closedDateIsValid();
+      allow delete: if isStaff();
     }
 
     match /subscriptionPlans/{planId} {
@@ -80,21 +175,64 @@ service cloud.firestore {
     }
 
     match /publicSettings/{settingId} {
+      function settingsAreValid() {
+        let data = request.resource.data;
+        return data.freeDeliveryThresholdPence is int
+          && data.freeDeliveryThresholdPence >= 0
+          && data.freeDeliveryThresholdPence <= 1000000
+          && data.snackFlatFeePence is int
+          && data.snackFlatFeePence >= 0
+          && data.snackFlatFeePence <= 100000
+          && data.collectionEnabled is bool;
+      }
+
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && settingsAreValid();
     }
 
     // ---------------------------------------------------------------------
-    // Operational data: staff read, admin write
+    // Operational data: staff read, staff/admin write
     // ---------------------------------------------------------------------
     match /dateCapacity/{dateId} {
+      function capacityIsValid() {
+        let data = request.resource.data;
+        return data.date is string
+          && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && data.juiceCapacity is int
+          && data.juiceCapacity >= 0
+          && data.juiceCapacity <= 100000
+          && data.juiceReserved is int
+          && data.juiceReserved >= 0
+          && data.subscriberShare is int
+          && data.subscriberShare >= 0
+          && data.closed is bool;
+      }
+
       allow read: if isStaff();
-      allow write: if isAdmin();
+      allow create, update: if isStaff() && capacityIsValid();
+      allow delete: if isStaff();
     }
 
     match /promotions/{promotionId} {
+      function promotionIsValid() {
+        let data = request.resource.data;
+        return data.code is string
+          && data.code.size() >= 3
+          && data.code.size() <= 20
+          && data.type is string
+          && data.type in ['percent', 'fixed', 'freeDelivery']
+          && data.value is int
+          && data.value >= 0
+          && data.value <= 10000
+          && data.minSpendPence is int
+          && data.minSpendPence >= 0
+          && data.active is bool;
+      }
+
+      // Customers never see promotion codes.
       allow read: if isStaff();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin() && promotionIsValid();
+      allow delete: if isAdmin();
     }
 
     match /settings/{settingId} {
@@ -153,11 +291,50 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
-    // Orders and subscriptions: readable by owner or staff, never client-written
+    // Orders: readable by owner or staff. Clients never create, delete or
+    // reprice an order. Admins/staff may only touch the fields the dashboard
+    // owns, so totals and line items stay immutable in the browser.
     // ---------------------------------------------------------------------
     match /orders/{orderId} {
+      function statusChangeIsNarrow() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'statusHistory',
+          'internalNote',
+          'updatedAt'
+        ])
+          && request.resource.data.status in [
+            'confirmed',
+            'preparing',
+            'out_for_delivery',
+            'delivered',
+            'collected',
+            'cancelled'
+          ]
+          && request.resource.data.statusHistory is list;
+      }
+
+      function refundChangeIsNarrow() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'paymentStatus',
+          'refundedPence',
+          'statusHistory',
+          'updatedAt'
+        ])
+          && request.resource.data.paymentStatus in [
+            'paid',
+            'refunded',
+            'partially_refunded'
+          ]
+          && request.resource.data.refundedPence is int
+          && request.resource.data.refundedPence >= 0
+          && request.resource.data.refundedPence <= resource.data.totalPence;
+      }
+
       allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow write: if false;
+      allow create, delete: if false;
+      allow update: if (isStaff() && statusChangeIsNarrow())
+        || (isAdmin() && refundChangeIsNarrow());
     }
 
     match /subscriptions/{subscriptionId} {
@@ -171,11 +348,38 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
-    // Audit trail and server-only collections
+    // Audit trail: staff may append their own entry, nobody may edit or delete
     // ---------------------------------------------------------------------
     match /auditLog/{entryId} {
+      function entryIsValid() {
+        let data = request.resource.data;
+        return data.keys().hasOnly([
+          'action',
+          'entityType',
+          'entityId',
+          'uid',
+          'email',
+          'metadata',
+          'createdAt'
+        ])
+          && data.action is string
+          && data.action.size() > 0
+          && data.action.size() <= 60
+          && data.entityType is string
+          && data.entityType.size() > 0
+          && data.entityType.size() <= 60
+          && data.entityId is string
+          && data.entityId.size() > 0
+          && data.entityId.size() <= 120
+          && data.uid == request.auth.uid
+          && (data.email == null
+            || (data.email is string && data.email.size() > 0 && data.email.size() <= 320))
+          && data.createdAt == request.time;
+      }
+
       allow read: if isAdmin();
-      allow write: if false;
+      allow create: if isStaff() && entryIsValid();
+      allow update, delete: if false;
     }
 
     // Stripe webhook idempotency records and stock/capacity reservations are

@@ -72,7 +72,7 @@ export const ShopSnacksPage: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
             {snacks.map((snack) => {
               const activeVariant = getActiveVariant(snack);
-              const featureImage = snack.images[0];
+              const featureImage = activeVariant.image ?? snack.images[0];
 
           return (
             <div

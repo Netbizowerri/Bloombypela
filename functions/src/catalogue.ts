@@ -1,7 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { logger } from 'firebase-functions/logger';
 import { z } from 'zod';
-import { createHmac } from 'crypto';
-import { defineSecret } from 'firebase-functions/params';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './lib/admin';
 import { requireRole } from './lib/auth';
@@ -9,10 +8,8 @@ import { ALLOWED_ORIGINS } from './lib/config';
 import { fromZodError } from './lib/errors';
 import type { Product } from './lib/types';
 
-const CLOUDINARY_API_SECRET = defineSecret('CLOUDINARY_API_SECRET');
-// Public Cloudinary key (not a secret); the secret is CLOUDINARY_API_SECRET above.
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY ?? '';
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME ?? 'titznrnk';
+/** A product shows at most three photos in the admin dashboard and storefront. */
+const MAX_PRODUCT_IMAGES = 3;
 
 const AllergenSchema = z.enum([
   'Celery',
@@ -38,6 +35,12 @@ const VariantSchema = z.object({
   sku: z.string().trim().min(1),
   stock: z.number().int().nonnegative(),
   isDefault: z.boolean().optional(),
+  image: z
+    .object({
+      url: z.string().url(),
+      publicId: z.string(),
+    })
+    .optional(),
 });
 
 const ProductInputSchema = z.object({
@@ -56,7 +59,7 @@ const ProductInputSchema = z.object({
       url: z.string().url(),
       publicId: z.string(),
     }),
-  ),
+  ).max(MAX_PRODUCT_IMAGES),
   status: z.enum(['active', 'hidden', 'seasonal']),
   seasonalStartDate: z.string().optional().nullable(),
   seasonalEndDate: z.string().optional().nullable(),
@@ -64,7 +67,6 @@ const ProductInputSchema = z.object({
   seoTitle: z.string().max(200).optional().nullable(),
   seoDescription: z.string().max(400).optional().nullable(),
   isPopular: z.boolean().optional(),
-  origin: z.enum(['Nigeria', 'UK Prepared', 'West Africa']).optional().nullable(),
 });
 
 type ProductInput = z.infer<typeof ProductInputSchema>;
@@ -105,31 +107,6 @@ function writeAuditLog(
 }
 
 /**
- * Returns a Cloudinary signed upload payload for the admin image uploader.
- * Admin/staff only. The client uploads the file directly to Cloudinary with
- * the returned signature, then stores secure_url + public_id.
- */
-export const getUploadSignature = onCall(
-  { secrets: [CLOUDINARY_API_SECRET], cors: ALLOWED_ORIGINS },
-  async (request) => {
-    requireRole(request, ['admin', 'staff']);
-    const secret = CLOUDINARY_API_SECRET.value();
-    if (!secret) {
-      throw new HttpsError('internal', 'CLOUDINARY_API_SECRET is not configured.');
-    }
-    const timestamp = Math.floor(Date.now() / 1000);
-    const signature = createHmac('sha1', secret).update(`timestamp=${timestamp}`).digest('hex');
-
-    return {
-      timestamp,
-      signature,
-      apiKey: CLOUDINARY_API_KEY,
-      cloudName: CLOUDINARY_CLOUD_NAME,
-    };
-  },
-);
-
-/**
  * Create a product (and an auditLog entry). Admin/staff only.
  */
 export const createProduct = onCall(
@@ -157,17 +134,27 @@ export const createProduct = onCall(
       seoTitle: input.seoTitle ?? undefined,
       seoDescription: input.seoDescription ?? undefined,
       isPopular: input.isPopular,
-      origin: input.origin ?? undefined,
     });
-    await db.collection('products').doc(input.id).set(product);
-    await writeAuditLog(
-      db,
-      identity,
-      'create',
-      'product',
-      input.id,
-      { name: input.name, slug: input.slug },
-    );
+    try {
+      await db.collection('products').doc(input.id).set(product);
+      await writeAuditLog(
+        db,
+        identity,
+        'create',
+        'product',
+        input.id,
+        { name: input.name, slug: input.slug },
+      );
+    } catch (error) {
+      logger.error('createProduct failed', {
+        productId: input.id,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpsError(
+        'internal',
+        `Could not create product ${input.name}. Try again.`,
+      );
+    }
     return { ok: true, id: input.id };
   },
 );
@@ -185,39 +172,49 @@ export const updateProduct = onCall(
     const snap = await ref.get();
     if (!snap.exists) throw new HttpsError('not-found', `Product ${input.id} not found.`);
     const previous = snap.data() as Partial<Product>;
-    await ref.set(
-      omitUndefined({
-        ...previous,
-        name: input.name,
-        slug: input.slug,
-        type: input.type,
-        category: input.category,
-        description: input.description,
-        shortDescription: input.shortDescription ?? undefined,
-        ingredients: input.ingredients,
-        allergens: input.allergens,
-        weightOrVolume: input.weightOrVolume,
-        images: input.images,
-        status: input.status,
-        seasonalStartDate: input.seasonalStartDate ?? undefined,
-        seasonalEndDate: input.seasonalEndDate ?? undefined,
-        variants: input.variants,
-        seoTitle: input.seoTitle ?? undefined,
-        seoDescription: input.seoDescription ?? undefined,
-        isPopular: input.isPopular,
-        origin: input.origin ?? undefined,
-        updatedAt: FieldValue.serverTimestamp(),
-      }),
-      { merge: true },
-    );
-    await writeAuditLog(
-      db,
-      identity,
-      'update',
-      'product',
-      input.id,
-      { name: input.name, slug: input.slug },
-    );
+    try {
+      await ref.set(
+        omitUndefined({
+          ...previous,
+          name: input.name,
+          slug: input.slug,
+          type: input.type,
+          category: input.category,
+          description: input.description,
+          shortDescription: input.shortDescription ?? undefined,
+          ingredients: input.ingredients,
+          allergens: input.allergens,
+          weightOrVolume: input.weightOrVolume,
+          images: input.images,
+          status: input.status,
+          seasonalStartDate: input.seasonalStartDate ?? undefined,
+          seasonalEndDate: input.seasonalEndDate ?? undefined,
+          variants: input.variants,
+          seoTitle: input.seoTitle ?? undefined,
+          seoDescription: input.seoDescription ?? undefined,
+          isPopular: input.isPopular,
+          updatedAt: FieldValue.serverTimestamp(),
+        }),
+        { merge: true },
+      );
+      await writeAuditLog(
+        db,
+        identity,
+        'update',
+        'product',
+        input.id,
+        { name: input.name, slug: input.slug },
+      );
+    } catch (error) {
+      logger.error('updateProduct failed', {
+        productId: input.id,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      throw new HttpsError(
+        'internal',
+        `Could not update product ${input.id}. Try again.`,
+      );
+    }
     return { ok: true, id: input.id };
   },
 );

@@ -478,7 +478,7 @@ describe('reservation expiry', () => {
         sessions: {
           retrieve: async () => {
             calls.push('retrieve');
-            return { id: 'cs_test_open', status: 'complete' };
+            return { id: 'cs_test_open', status: 'complete', payment_status: 'paid' };
           },
           expire: async () => {
             calls.push('expire');
@@ -486,7 +486,7 @@ describe('reservation expiry', () => {
           },
         },
       },
-    } as unknown as Pick<Stripe, 'checkout'>;
+    } as unknown as Pick<Stripe, 'checkout' | 'coupons'>;
 
     const summary = await expireReservations(
       db,
@@ -524,7 +524,7 @@ describe('reservation expiry', () => {
           },
         },
       },
-    } as unknown as Pick<Stripe, 'checkout'>;
+    } as unknown as Pick<Stripe, 'checkout' | 'coupons'>;
 
     const summary = await expireReservations(
       db,

@@ -1,4 +1,5 @@
-import { setGlobalOptions } from 'firebase-functions/v2';
+// Must stay first: sets the europe-west2 default before any function module loads.
+import './lib/globalOptions';
 import { onCall } from 'firebase-functions/v2/https';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { logger } from 'firebase-functions/logger';
@@ -11,10 +12,10 @@ import type { OrderRecord } from './lib/types';
 export {
   createProduct,
   duplicateProduct,
-  getUploadSignature,
   softDeleteProduct,
   updateProduct,
 } from './catalogue';
+
 export {
   checkPostcode,
   getAvailableDatesCallable,
@@ -47,9 +48,6 @@ export {
   exportOrdersCSV,
 } from './orders/admin';
 export { resendOrderEmail, resendLowStockAlert, resendEmailForOrder } from './email/index';
-
-// Applied to every function in this codebase unless a function overrides it.
-setGlobalOptions({ region: REGION });
 
 const pingRequest = z.object({
   message: z.string().trim().min(1).max(200).optional(),
