@@ -13,10 +13,13 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   type Firestore,
 } from 'firebase/firestore';
 import { afterAll, afterEach, beforeAll, describe, it } from 'vitest';
@@ -426,6 +429,42 @@ describe('products', () => {
     await assertSucceeds(getDoc(doc(dbFor(customer()), 'products/prod-visible')));
     await assertFails(getDoc(doc(dbFor(customer()), 'products/prod-hidden')));
     await assertSucceeds(getDoc(doc(dbFor(staff()), 'products/prod-hidden')));
+  });
+
+  it('requires a public status filter on customer product queries', async () => {
+    await seed('products/prod-visible', { ...visibleProduct, slug: 'plantain-chips' });
+    await seed('products/prod-hidden', { ...hiddenProduct, slug: 'seasonal-special' });
+
+    const customerDb = dbFor(customer());
+
+    // A bare slug query cannot be proven safe by the rules, so Firestore
+    // rejects it. This is the bug the product detail page hit.
+    await assertFails(
+      getDocs(
+        query(collection(customerDb, 'products'), where('slug', '==', 'plantain-chips'))
+      )
+    );
+
+    // The detail-page query proves every returned document is publicly visible.
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(customerDb, 'products'),
+          where('status', 'in', ['active', 'seasonal']),
+          where('slug', '==', 'plantain-chips')
+        )
+      )
+    );
+
+    // Staff may query without a status filter and can read hidden products.
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(dbFor(staff()), 'products'),
+          where('slug', '==', 'seasonal-special')
+        )
+      )
+    );
   });
 
   it('lets staff and admin write a valid product, denies customers and malformed documents', async () => {

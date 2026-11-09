@@ -33,6 +33,14 @@ export const ProductDetailPage: React.FC = () => {
     category: product?.category,
   });
 
+  // Hooks must run on every render, before any early return, otherwise React
+  // throws "Rendered more hooks than during the previous render" once the
+  // product query settles.
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
+  const [copied, setCopied] = useState<boolean>(false);
+
   if (isLoading) return <PageLoader />;
   if (isError) {
     return (
@@ -41,7 +49,9 @@ export const ProductDetailPage: React.FC = () => {
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mb-2">
           Couldn't load the product
         </h1>
-        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">        {error?.message ?? 'Failed to load'}</p>
+        <p className="text-sm text-stone-600 mb-6 max-w-md mx-auto">
+          {error?.message ?? 'Failed to load'}
+        </p>
         <Link
           to="/shop"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#155d2c] text-white font-medium hover:bg-[#104923] transition-colors"
@@ -51,12 +61,6 @@ export const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  // Fallback to first variant if product exists
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
-  const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
-  const [copied, setCopied] = useState<boolean>(false);
 
   if (!product) {
     return (

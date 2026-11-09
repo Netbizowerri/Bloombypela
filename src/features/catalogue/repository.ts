@@ -140,17 +140,28 @@ export const catalogueRepository = {
     return products;
   },
 
+  /**
+   * Get one publicly visible product by slug.
+   *
+   * The `status` filter is not optional: Firestore security rules only allow a
+   * public reader when the query itself guarantees `status != 'hidden'`. A bare
+   * `where('slug', '==', slug)` query is rejected with "Missing or insufficient
+   * permissions", which is why this must mirror `listProducts`.
+   */
   async getProductBySlug(slug: string): Promise<Product | null> {
     const database = requireDb();
     const snap = await getDocs(
       query(
         collection(database, COLLECTIONS.products),
+        where('status', 'in', ['active', 'seasonal']),
         where('slug', '==', slug),
         limit(1),
       ),
     );
     if (snap.empty) return null;
-    return docToProduct(snap.docs[0]);
+    const product = docToProduct(snap.docs[0]);
+    // Seasonal products outside their window are not for sale yet/any more.
+    return isPubliclyVisible(product) ? product : null;
   },
 
   async listBundles(): Promise<ProductBundle[]> {
