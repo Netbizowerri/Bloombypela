@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useForm, useFieldArray, useWatch, useController, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { Plus, Trash2, Copy, Eye, EyeOff, Edit, Upload, Image, RefreshCw } from 'lucide-react';
 import { formatPence } from '../../lib/utils';
+import { penceToPounds, poundsToPence } from '../../lib/money';
 import { cld, cloudinaryPublicId } from '../../lib/cld';
 import { UK_ALLERGENS } from '../../lib/utils';
 import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, PRODUCT_IMAGE_FOLDER } from '../../lib/cloudinary';
@@ -113,8 +114,8 @@ const ClientProductSchema = z.object({
       id: z.string().min(1),
       name: z.string().min(1, 'Variant name is required.'),
       pricePence: z
-        .number({ error: 'Enter a price in whole pence.' })
-        .int('Use whole pence, for example 450.')
+        .number({ error: 'Enter a price in pounds, for example 7.99.' })
+        .int('Use pounds and pence, for example 7.99.')
         .nonnegative('Price cannot be negative.'),
       sku: z.string().min(1, 'SKU is required.'),
       stock: z
@@ -148,6 +149,61 @@ function slugify(value: string): string {
 }
 
 type ClientProductInput = z.infer<typeof ClientProductSchema>;
+
+/**
+ * Pounds-and-pence input for a variant price.
+ *
+ * Firestore (and the rest of the app) stores money as integer pence, so this
+ * control only changes what staff type: `7.99` becomes 799 before validation
+ * and saving. Typing is limited to two decimal places, and a half-typed value
+ * such as `7.` is kept in the box rather than rounded behind the user's back.
+ */
+const PriceInput: React.FC<{
+  control: Control<ClientProductInput>;
+  name: `variants.${number}.pricePence`;
+  disabled: boolean;
+  invalid: boolean;
+}> = ({ control, name, disabled, invalid }) => {
+  const { field } = useController({ control, name });
+  const [text, setText] = useState(() => penceToPounds(field.value));
+
+  // Follow edits made outside this input (form reset, switching product) while
+  // leaving a half-typed amount alone: NaN while typing must not wipe the box.
+  useEffect(() => {
+    if (!Number.isFinite(field.value)) return;
+    setText((current) =>
+      poundsToPence(current) === field.value ? current : penceToPounds(field.value),
+    );
+  }, [field.value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      value={text}
+      disabled={disabled}
+      aria-label="Price in pounds"
+      aria-invalid={invalid}
+      placeholder="7.99"
+      onChange={(event) => {
+        // Accept a decimal comma (`7,99`) as well as a dot, then drop any other
+        // character (currency symbol, spaces) instead of guessing at its value.
+        const normalised = event.target.value.replace(',', '.');
+        const next = normalised.replace(/[^\d.]/g, '');
+        // Only 0–2 decimals, so `7.999` cannot be typed into the box.
+        if (!/^\d*(?:\.\d{0,2})?$/.test(next)) return;
+        setText(next);
+        // `7.` is incomplete, so keep the price invalid until it is finished.
+        field.onChange(next === '' || next === '.' ? Number.NaN : poundsToPence(next));
+      }}
+      onBlur={() => {
+        if (Number.isFinite(field.value)) setText(penceToPounds(field.value));
+      }}
+      className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+    />
+  );
+};
 
 /**
  * Turns a product save failure into a message an admin can act on.
@@ -967,7 +1023,7 @@ export const AdminCatalogue: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   {variantFields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                    <div key={field.id} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-start">
                       <div className="space-y-1">
                         <label className="text-[10px] text-stone-500">Variant name</label>
                         <input
@@ -982,16 +1038,16 @@ export const AdminCatalogue: React.FC = () => {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-stone-500">Price (pence)</label>
-                        <input
-                          {...form.register(`variants.${index}.pricePence`, {
-                            valueAsNumber: true,
-                          })}
-                          type="number"
-                          min={0}
-                          step={1}
-                          className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                        <label className="text-[10px] text-stone-500">Price (£)</label>
+                        <PriceInput
+                          control={form.control}
+                          name={`variants.${index}.pricePence`}
+                          disabled={form.formState.isSubmitting}
+                          invalid={Boolean(form.formState.errors.variants?.[index]?.pricePence)}
                         />
+                        <span className="block text-[10px] text-stone-400">
+                          Type pounds and pence, e.g. 7.99
+                        </span>
                         {form.formState.errors.variants?.[index]?.pricePence && (
                           <p className="text-[10px] text-[#c93c3c]">
                             {form.formState.errors.variants[index]?.pricePence?.message}
