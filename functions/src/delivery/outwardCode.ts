@@ -18,12 +18,16 @@ const UK_POSTCODE_REGEX =
  */
 export function parseOutwardCode(postcode: string): string {
   const trimmed = postcode?.trim() ?? '';
-  if (!UK_POSTCODE_REGEX.test(trimmed)) {
+  if (!isValidUKPostcode(trimmed)) {
     throw new Error(`Invalid UK postcode format: "${postcode}"`);
   }
   const normalized = trimmed.toUpperCase().replace(/\s+/g, '');
   // Inward code is always the last 3 characters (digit + 2 letters)
   return normalized.slice(0, -3);
+}
+
+export function isValidUKPostcode(postcode: string): boolean {
+  return UK_POSTCODE_REGEX.test(postcode.trim());
 }
 
 /**

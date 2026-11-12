@@ -1,5 +1,5 @@
 /**
- * Checkout page â€“ full checkout UI up to (but not including) Stripe.
+ * Checkout page - full checkout UI up to (but not including) Stripe.
  *
  * Flow:
  *  1. Contact details (guest email/phone, or signed-in prefill)
@@ -38,6 +38,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { formatPence, formatLondonDate, UK_ALLERGENS } from '../lib/utils';
 import { cld } from '../lib/cld';
+import { isValidUKPostcode } from '../lib/postcode';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
@@ -218,16 +219,17 @@ export const CheckoutPage: React.FC = () => {
     if (form.contactName.trim().length < 2) return false;
     if (!form.contactEmail || !form.contactPhone) return false;
     if (form.fulfilment === 'delivery') {
-      if (!form.addressLine1 || !form.addressCity || !form.addressPostcode) return false;
+      if (
+        !form.addressLine1 ||
+        !form.addressCity ||
+        !isValidUKPostcode(form.addressPostcode)
+      ) {
+        return false;
+      }
     }
     if (!form.terms) return false;
     return true;
   }, [items.length, form.contactName, form.contactEmail, form.contactPhone, form.fulfilment, form.addressLine1, form.addressCity, form.addressPostcode, form.terms]);
-
-  const isQuoteStale = useMemo(() => {
-    if (!quote) return true;
-    return false;
-  }, [quote, items, form.fulfilment, form.addressPostcode, form.promoCode]);
 
   const handlePay = useCallback(async () => {
     if (paying) return;
@@ -470,9 +472,16 @@ export const CheckoutPage: React.FC = () => {
                   />
                   <Input
                     label="UK postcode"
+                    autoComplete="postal-code"
                     value={form.addressPostcode}
                     onChange={(e) => setField('addressPostcode', e.target.value.toUpperCase())}
-                    error={!form.addressPostcode ? 'Postcode is required' : undefined}
+                    error={
+                      !form.addressPostcode
+                        ? 'Postcode is required'
+                        : !isValidUKPostcode(form.addressPostcode)
+                          ? 'Enter a valid UK postcode'
+                          : undefined
+                    }
                   />
                 </div>
               </section>
@@ -530,7 +539,7 @@ export const CheckoutPage: React.FC = () => {
                 <p>
                   Our juices are raw, cold-pressed and unpasteurised. Please ensure someone is available
                   at the delivery address to receive and refrigerate your bottles immediately (store below
-                  4Â°C). Consume within 5 days of delivery.
+                  4°C). Consume within 5 days of delivery.
                 </p>
                 <p className="mt-2">
                   Our kitchen handles the 14 major UK allergens. While we take care to avoid cross-contact,
@@ -576,7 +585,7 @@ export const CheckoutPage: React.FC = () => {
                 Order summary
               </h2>
               <p className="text-[10px] text-stone-500 mt-1 uppercase tracking-wider font-semibold">
-                Indicative totals â€” final price confirmed at payment
+                Indicative totals - final price confirmed at payment
               </p>
             </div>
             <div className="p-6 space-y-3">
@@ -585,7 +594,7 @@ export const CheckoutPage: React.FC = () => {
                   <span className="flex flex-col">
                     <span className="font-medium">{line.name}</span>
                     <span className="text-[10px] text-stone-500">
-                      {line.quantity} Ã— {formatPence(line.unitPricePence)}
+                      {line.quantity} × {formatPence(line.unitPricePence)}
                     </span>
                   </span>
                   <span className="font-medium">{formatPence(line.lineTotalPence)}</span>
@@ -604,7 +613,7 @@ export const CheckoutPage: React.FC = () => {
               {!quote && (
                 <p className="text-[10px] text-stone-500">
                   {form.fulfilment === 'collection'
-                    ? 'Collection â€” no delivery charge.'
+                    ? 'Collection - no delivery charge.'
                     : shipping.amountToDeliveryPence > 0
                       ? `Add ${formatPence(shipping.amountToDeliveryPence)} more for Newcastle Delivery!`
                       : 'Newcastle delivery charge applies.'}
@@ -639,16 +648,14 @@ export const CheckoutPage: React.FC = () => {
                 variant="primary"
                 size="md"
                 className="w-full"
-                disabled={!canProceed || isQuoteStale || paying}
+                disabled={!canProceed || paying}
                 isLoading={paying}
               >
                 {paying
-                  ? 'Redirecting to secure paymentâ€¦'
+                  ? 'Redirecting to secure payment...'
                   : !canProceed
                     ? 'Complete details to continue'
-                    : isQuoteStale
-                      ? 'Updating quoteâ€¦'
-                      : 'Pay securely'}
+                    : 'Pay securely'}
               </Button>
               {payError && (
                 <p className="mt-3 text-xs text-red-600" role="alert">

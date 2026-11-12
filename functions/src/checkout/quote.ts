@@ -13,6 +13,7 @@ import { fromZodError } from '../lib/errors';
 import { adminDb } from '../lib/admin';
 import { checkRateLimit } from '../lib/rateLimit';
 import { computeCartQuote } from './quoteService';
+import { isValidUKPostcode } from '../delivery/outwardCode';
 
 const QUOTE_CART_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
@@ -27,10 +28,18 @@ const QuoteCartInput = z.object({
     )
     .min(1)
     .max(50),
-  postcode: z.string().trim().min(1).max(20),
+  postcode: z.string().trim().max(20),
   fulfilment: z.enum(['delivery', 'collection']),
   deliveryDate: z.string().optional().nullable(),
   promoCode: z.string().trim().max(20).optional().nullable(),
+}).superRefine(({ fulfilment, postcode }, ctx) => {
+  if (fulfilment === 'delivery' && !isValidUKPostcode(postcode)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['postcode'],
+      message: 'Enter a valid UK postcode.',
+    });
+  }
 });
 
 /**

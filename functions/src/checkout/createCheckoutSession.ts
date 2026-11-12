@@ -21,6 +21,7 @@ import { ALLOWED_ORIGINS } from '../lib/config';
 import { fromZodError, internal, invalidArgument } from '../lib/errors';
 import { checkRateLimit } from '../lib/rateLimit';
 import { getAppUrl, STRIPE_SECRET_KEY, stripeClient } from '../lib/stripe';
+import { isValidUKPostcode } from '../delivery/outwardCode';
 import { computeCartQuote } from './quoteService';
 import { createReservation, releaseReservation } from './reservationService';
 
@@ -51,7 +52,7 @@ const CheckoutInput = z.object({
       line1: z.string().trim().min(1).max(200),
       line2: z.string().trim().max(200).optional().nullable(),
       city: z.string().trim().min(1).max(120),
-      postcode: z.string().trim().min(3).max(20),
+      postcode: z.string().trim().max(20).refine(isValidUKPostcode, 'Enter a valid UK postcode.'),
     })
     .optional()
     .nullable(),

@@ -13,6 +13,7 @@ coverage/
 *service-account*.json
 .aistudio/
 .firebase/
+.vercel/
 firebase-debug.log
 ui-debug.log
 functions/lib/

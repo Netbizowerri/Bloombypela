@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DateTime } from 'luxon';
-import { parseOutwardCode, isAreaServed } from '../src/delivery/outwardCode';
+import {
+  isAreaServed,
+  isValidUKPostcode,
+  parseOutwardCode,
+} from '../src/delivery/outwardCode';
 import { computeDeliveryFee } from '../src/delivery/fee';
 import { getAvailableDates } from '../src/delivery/dates';
 import type {
@@ -46,6 +50,21 @@ describe('parseOutwardCode', () => {
     expect(() => parseOutwardCode('')).toThrow();
     expect(() => parseOutwardCode('NE1')).toThrow();
     expect(() => parseOutwardCode('NE1 1')).toThrow();
+  });
+});
+
+describe('isValidUKPostcode', () => {
+  it('accepts standard UK postcode formats', () => {
+    expect(isValidUKPostcode('NE1 1AA')).toBe(true);
+    expect(isValidUKPostcode('NE11 1AA')).toBe(true);
+    expect(isValidUKPostcode('M1 1AA')).toBe(true);
+    expect(isValidUKPostcode('CR0 1NY')).toBe(true);
+  });
+
+  it('rejects invalid postcode formats', () => {
+    expect(isValidUKPostcode('')).toBe(false);
+    expect(isValidUKPostcode('NE1')).toBe(false);
+    expect(isValidUKPostcode('not-a-postcode')).toBe(false);
   });
 });
 

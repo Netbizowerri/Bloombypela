@@ -116,7 +116,7 @@ export const ProductDetailPage: React.FC = () => {
     openCart();
     success(
       'Added to basket',
-      `${quantity}Ã— ${product.name} (${activeVariant.name}) added to your basket.`
+      `${quantity} × ${product.name} (${activeVariant.name}) added to your basket.`
     );
   };
 
@@ -178,7 +178,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="relative aspect-4/3 sm:aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs group">
                 <img
                   src={feature ? cld(feature.url, 900) : ''}
-                  alt={featureVariant ? `${product.name} â€” ${featureVariant.name}` : product.name}
+                  alt={featureVariant ? `${product.name} — ${featureVariant.name}` : product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {/* Badges on main image */}
@@ -276,7 +276,7 @@ export const ProductDetailPage: React.FC = () => {
               >
                 {product.category}
               </Link>
-              <span className="text-stone-300">â€¢</span>
+              <span className="text-stone-300">•</span>
               <span className="text-xs text-stone-500 font-medium">
                 {product.type === 'snack' ? 'Pantry Treat' : 'Fresh Beverage'}
               </span>
@@ -392,7 +392,7 @@ export const ProductDetailPage: React.FC = () => {
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>
-                    Add to Basket â€¢ {formatPence(activeVariant.pricePence * quantity)}
+                    Add to Basket {formatPence(activeVariant.pricePence * quantity)}
                   </span>
                 </button>
               </div>
@@ -483,7 +483,7 @@ export const ProductDetailPage: React.FC = () => {
               to={categoryPath}
               className="text-xs sm:text-sm font-semibold text-[#155d2c] hover:underline"
             >
-              View all â†’
+              View all →
             </Link>
           </div>
 

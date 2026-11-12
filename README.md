@@ -1,14 +1,15 @@
 # Bloom by Pela
 
 Premium packaged snacks and cold-pressed juices from Newcastle upon Tyne, UK.
-React 19 + Vite front end, Firebase Auth / Firestore / Cloud Functions (2nd gen,
-`europe-west2`) back end, Stripe for payments and Resend for transactional email.
+React 19 + Vite front end, Firebase Auth / Firestore, Vercel Serverless APIs for
+Stripe checkout, and Cloud Functions (2nd gen, `europe-west2`) for features that
+require an upgraded Firebase plan.
 
 ## Repository layout
 
 ```
 src/                 React SPA (Vite, Tailwind 4, React Router browser routing)
-functions/           Cloud Functions (TypeScript) and Firestore rules tests
+functions/           Vercel API routes, shared checkout services, Cloud Functions and tests
 scripts/             Operational scripts (set-role)
 tests/               Playwright smoke tests (added in a later section)
 firestore.rules      Firestore security rules (default deny)
@@ -30,6 +31,9 @@ and `java -version`.
    npm --prefix functions install
    ```
 
+   Vercel deployment uses `functions/` as the project root directory; its
+   `api/` folder contains the serverless endpoints.
+
 2. Create `.env` from `.env.example` and fill in the `VITE_FIREBASE_*` values
    (Firebase console > Project settings > Your apps). For emulator work the API
    key only needs to be a non-empty placeholder value, for example
@@ -38,8 +42,8 @@ and `java -version`.
    `VITE_USE_EMULATORS="true"` and the public Cloudinary values. Emulator wiring
    only runs when both `import.meta.env.DEV` and `VITE_USE_EMULATORS === "true"`
    are true, so production builds never connect to an emulator. Delete
-   `.env.development` to point the dev server back at the live project (only
-   useful once functions are deployed there).
+   `.env.development` to point the dev server back at the live project and set
+   `VITE_CHECKOUT_API_URL` to the deployed Vercel API origin.
 4. Start the emulators (Auth `9099`, Firestore `8080`, Functions `5001`,
    Hosting `5000`, Emulator UI `4000`):
 
@@ -95,11 +99,13 @@ Image upload works on Spark: the browser posts to an unsigned Cloudinary
 preset, so no function or secret is involved. A Cloudinary URL can also be
 pasted directly.
 
-What a Spark project cannot do is **take payments**: `createCheckoutSession`,
-`quoteCart`, the Stripe webhook, Resend emails and the 5-minute reservation
-expiry job all need a server. Until Blaze is enabled, checkout is unavailable
-and refunds must be issued in the Stripe dashboard, then recorded against the
-order in the admin portal.
+Firebase Spark cannot run Cloud Functions, but checkout does not require
+upgrading Firebase: the Vercel Serverless API handles authoritative quotes,
+Stripe Checkout sessions, signed webhooks, and success-page order lookups.
+It uses the Firebase Admin SDK to read and update Firestore; browser clients
+still cannot write orders, reservations, stock holds, or Stripe events.
+Cloud-Function-only features such as Resend email triggers and scheduled
+reservation cleanup remain unavailable on Spark.
 
 ## Firebase project
 
@@ -108,7 +114,8 @@ Functions additionally needs the **Blaze** plan; 2nd gen functions are not
 available on Spark. Everything in the admin portal above works without it.
 
 Never commit service account keys, `.env` files or Stripe/Resend/Cloudinary
-secrets. Server secrets belong in Cloud Functions via `defineSecret`.
+secrets. Checkout secrets and the Firebase service-account JSON belong only in
+Vercel's encrypted environment variables.
 
 ### Setting the admin role
 
@@ -202,7 +209,7 @@ need the API secret, so removing an image from a product only removes the
 reference from Firestore; clean up orphaned assets in the Cloudinary media
 library.
 
-## Payments (Stripe)
+## Payments (Stripe via Vercel)
 
 The browser never decides prices. `createCheckoutSession` re-prices the basket
 from Firestore, writes a 15-minute `reservations` hold (snack stock and juice
@@ -210,25 +217,24 @@ capacity) in a transaction, and only then creates a Stripe Checkout Session.
 Orders are created **only** by the signature-verified `stripeWebhook`; the
 success page just polls `getOrderBySession` and never confirms anything.
 
-### Secrets and endpoints
+The Vercel project uses `functions/` as its root directory. Add these variables
+in Vercel Project Settings > Environment Variables (never commit their values):
 
-Two secrets are read through `defineSecret` and must never be committed:
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: the full JSON for a dedicated Firebase
+  service account granted only the `roles/datastore.user` role; do not grant
+  Owner or Editor.
+- `STRIPE_SECRET_KEY`: `sk_test_...` for testing, then `sk_live_...`.
+- `STRIPE_WEBHOOK_SECRET`: the `whsec_...` for the deployed Vercel webhook.
+- `APP_URL`: `https://bloombypela.com` (the public site URL).
+- `ALLOWED_ORIGINS`: comma-separated allowed storefront origins, including
+  `https://bloombypela.com` and `https://www.bloombypela.com`.
 
-```bash
-firebase functions:secrets:set STRIPE_SECRET_KEY      # sk_test_... / sk_live_...
-firebase functions:secrets:set STRIPE_WEBHOOK_SECRET  # whsec_...
-```
+Set `VITE_CHECKOUT_API_URL` in the frontend build environment to
+`https://bloombypela.vercel.app` (this is also the production default), then
+rebuild and deploy the frontend to Firebase Hosting.
 
-Non-secret configuration (the public site URL used for Stripe redirects) lives
-in `functions/.env.bloombypela`:
-
-```
-APP_URL=https://bloombypela.com
-```
-
-Register the deployed webhook in the Stripe dashboard with endpoint
-`https://europe-west2-<project-id>.cloudfunctions.net/stripeWebhook` and these
-events:
+Register the Stripe webhook endpoint
+`https://<vercel-project>.vercel.app/api/stripe-webhook` with these events:
 
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`
@@ -248,25 +254,36 @@ automatic payment methods enabled in the dashboard (card, Apple Pay, Google Pay)
 
 ### Local testing with the Stripe CLI
 
-1. Start the emulators (`npm run emulators`). The Functions emulator exposes
-   `stripeWebhook` at:
-   `http://127.0.0.1:5001/bloombypela-ec784/europe-west2/stripeWebhook`
-2. Create `functions/.secret.local` (git-ignored) with your **test** key. Run
-   `stripe listen` once, copy the printed `whsec_...`, and add it:
+1. Start the Vercel API locally from the `functions/` root with
+   `vercel dev --listen 3001`. Start the Firebase emulators (`npm run emulators`)
+   and set these local API variables in an ignored environment file:
+
+   ```
+   GCLOUD_PROJECT=bloombypela-ec784
+   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080
+   FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+   STRIPE_SECRET_KEY=sk_test_...
+   APP_URL=http://localhost:3000
+   ALLOWED_ORIGINS=http://localhost:3000
+   ```
+
+   Do not use production service-account credentials for emulator tests.
+2. Run `stripe listen` once, copy the printed `whsec_...`, and configure it as
+   `STRIPE_WEBHOOK_SECRET` for local development:
 
    ```
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
    ```
 
-3. Forward Stripe events to the emulator:
+3. Forward Stripe events to the local API:
 
    ```bash
-   stripe listen --forward-to http://127.0.0.1:5001/bloombypela-ec784/europe-west2/stripeWebhook
+   stripe listen --forward-to http://localhost:3001/api/stripe-webhook
    ```
 
-4. With `npm run dev` running, add items to the basket and pay on the Stripe
-   page with a test card.
+4. Run the Vite frontend separately with `VITE_CHECKOUT_API_URL` set to
+   `http://localhost:3001`. Add items to the basket and use Stripe test cards.
 
 Test cards:
 
@@ -300,10 +317,11 @@ sets the order to `partially_refunded` or `refunded` and records
 
 ### Abandoned checkouts
 
-Holds expire after 15 minutes. `releaseExpiredReservations` runs every 5
-minutes, closes the Stripe session first, then releases the holds. A session
-that Stripe reports as already complete is never released, so a slow webhook
-cannot lose a paid order.
+The checkout session expires after 30 minutes. Stripe's
+`checkout.session.expired` webhook releases its reservation; failed delayed
+payments release theirs when Stripe sends
+`checkout.session.async_payment_failed`. A session that Stripe reports as
+already paid is never released, so a delayed webhook cannot lose a paid order.
 
 ## Granting admin
 

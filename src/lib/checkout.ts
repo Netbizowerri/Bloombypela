@@ -7,6 +7,7 @@
  */
 
 import { callable } from './functions';
+import { postServerApi } from './serverApi';
 
 export interface CheckoutRequestItem {
   productId: string;
@@ -69,22 +70,18 @@ export type OrderBySessionResult =
   | { state: 'confirmed'; order: PublicOrder }
   | { state: 'pending' | 'unfulfilled' | 'not_found'; order: null };
 
-const createCheckoutSessionFn = callable<CheckoutRequest, CheckoutSessionResponse>(
-  'createCheckoutSession',
-);
-
-const getOrderBySessionFn = callable<{ sessionId: string }, OrderBySessionResult>(
-  'getOrderBySession',
-);
-
 const lookupGuestOrderFn = callable<
   { orderNumber: string; email: string },
   { order: PublicOrder }
 >('lookupGuestOrder');
 
 export const checkoutApi = {
-  createCheckoutSession: (payload: CheckoutRequest) => createCheckoutSessionFn(payload),
-  getOrderBySession: (sessionId: string) => getOrderBySessionFn({ sessionId }),
+  createCheckoutSession: (payload: CheckoutRequest) =>
+    postServerApi<CheckoutRequest, CheckoutSessionResponse>('/api/checkout-session', payload),
+  getOrderBySession: (sessionId: string) =>
+    postServerApi<{ sessionId: string }, OrderBySessionResult>('/api/order-by-session', {
+      sessionId,
+    }),
   lookupGuestOrder: (orderNumber: string, email: string) =>
     lookupGuestOrderFn({ orderNumber, email }),
 };

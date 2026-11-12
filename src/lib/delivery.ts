@@ -3,9 +3,8 @@
  *
  * Two very different halves:
  *
- * - Storefront reads (`quoteCart`) are
- *   still Cloud Functions. They need server-side pricing logic and cannot run
- *   on the Spark plan, which is why checkout is not available on this plan.
+ * - Storefront reads (`quoteCart`) use the Vercel API. Prices and delivery
+ *   fees are calculated server-side from Firestore-backed catalogue data.
  * - Admin configuration (`createDeliveryArea`, `upsertDeliverySchedule`,
  *   `upsertClosedDate`, `upsertDateCapacity`, `updatePublicSettings`) writes
  *   directly to Firestore. `firestore.rules` restricts those collections to
@@ -15,13 +14,36 @@ import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { callable } from './functions';
 import { requireAdminDb, stripUndefinedDeep } from './firestoreWrite';
 import { audit } from './audit';
+import { postServerApi } from './serverApi';
 
 export type { DeliveryArea, DeliveryScheduleDay, ClosedDate, DateCapacity, PublicSettings } from '../types/delivery';
 
-const quoteCartFn = callable<
-  { items: { productId: string; variantId: string; quantity: number }[]; postcode: string; fulfilment: 'delivery' | 'collection'; deliveryDate?: string | null; promoCode?: string | null },
-  { lines: { productId: string; variantId: string; quantity: number; name: string; unitPricePence: number; lineTotalPence: number }[]; subtotalPence: number; deliveryFeePence: number; discountPence: number; totalPence: number; warnings: string[]; promoApplied: boolean; promoCode: string | null; promoMessage: string | null }
->('quoteCart');
+type QuoteRequest = {
+  items: { productId: string; variantId: string; quantity: number }[];
+  postcode: string;
+  fulfilment: 'delivery' | 'collection';
+  deliveryDate?: string | null;
+  promoCode?: string | null;
+};
+
+type QuoteResponse = {
+  lines: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    name: string;
+    unitPricePence: number;
+    lineTotalPence: number;
+  }[];
+  subtotalPence: number;
+  deliveryFeePence: number;
+  discountPence: number;
+  totalPence: number;
+  warnings: string[];
+  promoApplied: boolean;
+  promoCode: string | null;
+  promoMessage: string | null;
+};
 
 export type DeliveryAreaInput = {
   id?: string;
@@ -62,7 +84,8 @@ export type PublicSettingsInput = {
 };
 
 export const deliveryApi = {
-  quoteCart: (data: Parameters<typeof quoteCartFn>[0]) => quoteCartFn(data),
+  quoteCart: (data: QuoteRequest) =>
+    postServerApi<QuoteRequest, QuoteResponse>('/api/quote-cart', data),
 
   async createDeliveryArea(input: DeliveryAreaInput) {
     const database = requireAdminDb();
