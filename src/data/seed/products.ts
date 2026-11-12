@@ -1,9 +1,9 @@
-// PLACEHOLDER: Seed catalogue content. Replace with real products before launch;
-// every image URL and piece of copy here is placeholder material.
+// Seed catalogue content. Prices and pack sizes were confirmed by the owner on
+// 12 November 2026; the images are owner-supplied Cloudinary assets. Older copy
+// that is still placeholder is marked inline.
 import type { ImageAsset, Product } from '../../types/products.js';
 
-// Owner-supplied photos for the three Groundnut pack sizes. Prices below are
-// PLACEHOLDER values and must be confirmed by the owner before launch.
+// Owner-supplied photos for the three Groundnut pack sizes.
 const GROUNDNUT_280G_IMAGE: ImageAsset = {
   url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_280g.jpg',
   publicId: 'Groundnut_280g',
@@ -15,6 +15,16 @@ const GROUNDNUT_320G_IMAGE: ImageAsset = {
 const GROUNDNUT_500G_IMAGE: ImageAsset = {
   url: 'https://res.cloudinary.com/titznrnk/image/upload/v1793696881/Groundnut_500g.jpg',
   publicId: 'Groundnut_500g',
+};
+
+// Owner-supplied photos for Golden Boost and the new Ginger shot packs.
+const GOLDEN_BOOST_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1794459738/WhatsApp_Image_2026-11-11_at_3.09.50_PM.jpg',
+  publicId: 'WhatsApp_Image_2026-11-11_at_3.09.50_PM',
+};
+const GINGER_SHOTS_IMAGE: ImageAsset = {
+  url: 'https://res.cloudinary.com/titznrnk/image/upload/v1794459738/WhatsApp_Image_2026-11-11_at_3.09.51_PM.jpg',
+  publicId: 'WhatsApp_Image_2026-11-11_at_3.09.51_PM',
 };
 
 export const SEED_PRODUCTS: Product[] = [
@@ -62,9 +72,9 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     status: 'active',
     isPopular: true,
+    // Only the 100g pouch is sold; the 250g jar was retired on 12 November 2026.
     variants: [
-      { id: 'var-cc-100', name: '100g Resealable Pouch', pricePence: 320, sku: 'BBP-SNK-CC100', stock: 30, isDefault: true },
-      { id: 'var-cc-250', name: '250g Jar', pricePence: 680, sku: 'BBP-SNK-CC250', stock: 15 },
+      { id: 'var-cc-100', name: '100g Resealable Pouch', pricePence: 299, sku: 'BBP-SNK-CC100', stock: 30, isDefault: true },
     ],
     seoTitle: 'Coconut chips | Bloom by Pela Newcastle',
     seoDescription: 'Fragrant roasted coconut chips with natural vanilla and cane sugar.',
@@ -111,7 +121,7 @@ export const SEED_PRODUCTS: Product[] = [
       {
         id: 'var-gn-280',
         name: '280g Pouch',
-        pricePence: 380,
+        pricePence: 399,
         sku: 'BBP-SNK-GN280',
         stock: 40,
         isDefault: true,
@@ -120,7 +130,7 @@ export const SEED_PRODUCTS: Product[] = [
       {
         id: 'var-gn-320',
         name: '320g Pouch',
-        pricePence: 430,
+        pricePence: 599,
         sku: 'BBP-SNK-GN320',
         stock: 30,
         image: GROUNDNUT_320G_IMAGE,
@@ -128,7 +138,7 @@ export const SEED_PRODUCTS: Product[] = [
       {
         id: 'var-gn-500',
         name: '500g Pouch',
-        pricePence: 600,
+        pricePence: 799,
         sku: 'BBP-SNK-GN500',
         stock: 18,
         image: GROUNDNUT_500G_IMAGE,
@@ -156,7 +166,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     status: 'active',
     variants: [
-      { id: 'var-cw-180', name: '180g Pouch', pricePence: 480, sku: 'BBP-SNK-CW180', stock: 22, isDefault: true },
+      { id: 'var-cw-180', name: '180g Pouch', pricePence: 499, sku: 'BBP-SNK-CW180', stock: 22, isDefault: true },
     ],
     seoTitle: 'Cashews | Bloom by Pela Newcastle',
     seoDescription: 'Hand-selected whole roasted jumbo cashews toasted with sea salt.',
@@ -167,9 +177,9 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'tropical-bloom',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    weightOrVolume: '330ml',
+    weightOrVolume: '6 × 330ml',
     description:
-      'Our flagship sunshine elixir: cold-pressed ripe mango, sweet pineapples, passion fruit, fresh orange, and cold-extracted ginger. Pure liquid sunshine.',
+      'Our flagship sunshine elixir: cold-pressed ripe mango, sweet pineapples, passion fruit, fresh orange, and cold-extracted ginger. Pure liquid sunshine. Sold as a pack of six 330ml bottles.',
     shortDescription: 'Cold-pressed mango, golden pineapple, passion fruit, and ginger.',
     ingredients: ['Mango Puree', 'Fresh Pineapple Juice', 'Passion Fruit', 'Fresh Orange', 'Raw Ginger Root'],
     allergens: [],
@@ -180,8 +190,7 @@ export const SEED_PRODUCTS: Product[] = [
     status: 'active',
     isPopular: true,
     variants: [
-      { id: 'var-tb-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-TB330', stock: 50, isDefault: true },
-      { id: 'var-tb-750', name: '750ml Sharing Carafe', pricePence: 850, sku: 'BBP-JCE-TB750', stock: 20 },
+      { id: 'var-tb-pack6', name: 'Pack of 6 × 330ml Bottles', pricePence: 1499, sku: 'BBP-JCE-TB6PK', stock: 100, isDefault: true },
     ],
     seoTitle: 'Tropical Bloom | Bloom by Pela Newcastle',
     seoDescription: 'Cold-pressed tropical juice with mango, pineapple, passion fruit, and ginger.',
@@ -195,9 +204,9 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'skin-glow-skin-flow',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    weightOrVolume: '330ml',
+    weightOrVolume: '6 × 330ml',
     description:
-      'A nutrient-dense radiance blend made with crisp English carrots, organic sweet orange, turmeric root, red apple, and cold-pressed lemon.',
+      'A nutrient-dense radiance blend made with crisp English carrots, organic sweet orange, turmeric root, red apple, and cold-pressed lemon. Sold as a pack of six 330ml bottles.',
     shortDescription: 'Carrot, fresh turmeric, crisp apple, orange, and lemon radiance booster.',
     ingredients: ['Organic Carrots', 'Red Apples', 'Fresh Orange', 'Raw Turmeric', 'Lemon Juice'],
     allergens: [],
@@ -208,7 +217,7 @@ export const SEED_PRODUCTS: Product[] = [
     status: 'active',
     isPopular: true,
     variants: [
-      { id: 'var-sg-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-SG330', stock: 45, isDefault: true },
+      { id: 'var-sg-pack6', name: 'Pack of 6 × 330ml Bottles', pricePence: 1499, sku: 'BBP-JCE-SG6PK', stock: 100, isDefault: true },
     ],
     seoTitle: 'Skin Glow | Bloom by Pela Newcastle',
     seoDescription: 'Radiance booster juice blend with carrot, turmeric, crisp apple, orange, and lemon.',
@@ -219,9 +228,9 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'detox-juice-blend',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    weightOrVolume: '330ml',
+    weightOrVolume: '6 × 330ml',
     description:
-      'Ultra-cleansing cold-pressed British cucumber, tender celery stalks, crisp green Granny Smith apples, spinach, and fresh mint.',
+      'Ultra-cleansing cold-pressed British cucumber, tender celery stalks, crisp green Granny Smith apples, spinach, and fresh mint. Sold as a pack of six 330ml bottles.',
     shortDescription: 'Crisp cucumber, celery, spinach, green apple, and fresh garden mint.',
     ingredients: ['Cucumber', 'Celery', 'Green Apples', 'Spinach', 'Lime', 'Garden Mint'],
     allergens: ['Celery'],
@@ -231,7 +240,7 @@ export const SEED_PRODUCTS: Product[] = [
     ],
     status: 'active',
     variants: [
-      { id: 'var-dt-330', name: '330ml Glass Bottle', pricePence: 450, sku: 'BBP-JCE-DT330', stock: 40, isDefault: true },
+      { id: 'var-dt-pack6', name: 'Pack of 6 × 330ml Bottles', pricePence: 1499, sku: 'BBP-JCE-DT6PK', stock: 100, isDefault: true },
     ],
     seoTitle: 'Detox juice blend | Bloom by Pela Newcastle',
     seoDescription: 'Ultra-cleansing cold-pressed cucumber, celery, spinach, green apple, and mint juice blend.',
@@ -242,9 +251,9 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'zobo',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    weightOrVolume: '330ml',
+    weightOrVolume: '6 × 330ml',
     description:
-      'Slow-brewed Nigerian dried hibiscus calyces (Sorrel) infused with crushed cloves, fresh ginger, sweet pineapple rind, and cinnamon bark. Rich in antioxidants.',
+      'Slow-brewed Nigerian dried hibiscus calyces (Sorrel) infused with crushed cloves, fresh ginger, sweet pineapple rind, and cinnamon bark. Rich in antioxidants. Sold as a pack of six 330ml bottles.',
     shortDescription: 'Slow-brewed red hibiscus with fiery ginger, cloves, and sweet pineapple.',
     ingredients: ['Nigerian Dried Hibiscus Flowers', 'Pineapple Rind Infusion', 'Ginger Root', 'Cloves', 'Cinnamon Stick'],
     allergens: [],
@@ -255,8 +264,7 @@ export const SEED_PRODUCTS: Product[] = [
     status: 'active',
     isPopular: true,
     variants: [
-      { id: 'var-zb-330', name: '330ml Glass Bottle', pricePence: 420, sku: 'BBP-JCE-ZB330', stock: 60, isDefault: true },
-      { id: 'var-zb-750', name: '750ml Sharing Bottle', pricePence: 800, sku: 'BBP-JCE-ZB750', stock: 25 },
+      { id: 'var-zb-pack6', name: 'Pack of 6 × 330ml Bottles', pricePence: 1499, sku: 'BBP-JCE-ZB6PK', stock: 100, isDefault: true },
     ],
     seoTitle: 'Zobo | Bloom by Pela Newcastle',
     seoDescription: 'Authentic Nigerian Zobo hibiscus tonic with fiery ginger, cloves, and pineapple.',
@@ -267,22 +275,41 @@ export const SEED_PRODUCTS: Product[] = [
     slug: 'ginger-shots',
     type: 'juice',
     category: 'Fresh juices and drinks',
-    weightOrVolume: '60ml',
+    weightOrVolume: '60ml per bottle',
     description:
-      'Intense, immune-boosting cold-pressed ginger root combined with organic Sicilian lemon and a pinch of cayenne pepper.',
+      'Intense, immune-boosting cold-pressed ginger root combined with organic Sicilian lemon and a pinch of cayenne pepper. Sold in 14-bottle and 30-bottle packs.',
     shortDescription: 'Potent 60ml shot of raw cold-pressed ginger, lemon, and cayenne pepper.',
     ingredients: ['Raw Ginger Juice (80%)', 'Fresh Lemon Juice', 'Cayenne Pepper'],
     allergens: [],
-    images: [
-      { url: 'https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela_Ginger_Shot', publicId: 'Bloombypela_Ginger_Shot' },
-      { url: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80', publicId: '' },
-    ],
+    images: [GINGER_SHOTS_IMAGE],
     status: 'active',
     variants: [
-      { id: 'var-gs-single', name: 'Single 60ml Shot', pricePence: 250, sku: 'BBP-SHT-GS60', stock: 80, isDefault: true },
-      { id: 'var-gs-pack6', name: 'Weekly 6-Pack (6 x 60ml)', pricePence: 1350, sku: 'BBP-SHT-GS6PK', stock: 35 },
+      { id: 'var-gs-14', name: '14 × 60ml Bottles', pricePence: 2499, sku: 'BBP-SHT-GS14PK', stock: 100, isDefault: true },
+      { id: 'var-gs-30', name: '30 × 60ml Bottles', pricePence: 3499, sku: 'BBP-SHT-GS30PK', stock: 100 },
     ],
     seoTitle: 'Ginger shots | Bloom by Pela Newcastle',
     seoDescription: 'Immune-boosting raw cold-pressed ginger shots with lemon and cayenne pepper.',
+  },
+  {
+    id: 'prod-juice-golden-boost',
+    name: 'Golden Boost',
+    slug: 'golden-boost',
+    type: 'juice',
+    category: 'Fresh juices and drinks',
+    weightOrVolume: '60ml per bottle',
+    description:
+      'A powerful daily wellness shot packed with ginger, turmeric, and lemon. Expertly crafted to provide immune support, natural anti-inflammatory benefits, and promote healthy digestion — life in every sip!',
+    shortDescription: 'Ginger, turmeric and lemon daily wellness shot.',
+    ingredients: ['Ginger', 'Turmeric', 'Lemon'],
+    allergens: [],
+    images: [GOLDEN_BOOST_IMAGE],
+    status: 'active',
+    variants: [
+      { id: 'var-gb-14', name: '14 × 60ml Bottles', pricePence: 2099, sku: 'BBP-SHT-GB14PK', stock: 100, isDefault: true },
+      { id: 'var-gb-30', name: '30 × 60ml Bottles', pricePence: 2999, sku: 'BBP-SHT-GB30PK', stock: 100 },
+    ],
+    seoTitle: 'Golden Boost | Bloom by Pela Newcastle',
+    seoDescription:
+      'Daily ginger, turmeric and lemon wellness shot for immune support, anti-inflammatory benefits and healthy digestion.',
   },
 ];

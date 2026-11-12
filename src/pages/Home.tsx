@@ -477,7 +477,7 @@ export const HomePage: React.FC = () => {
             <div className="pt-2 flex flex-wrap gap-4 items-center">
               <Link to="/subscriptions">
                 <Button variant="gold" size="lg" className="text-stone-900 font-bold" rightIcon={<ArrowRight className="h-4 w-4" />}>
-                  Choose Your Plan (From £12.50/wk)
+                  Weekly Plans Coming Soon
                 </Button>
               </Link>
               <div className="flex items-center gap-2 text-xs text-stone-200">

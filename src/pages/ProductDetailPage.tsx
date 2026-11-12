@@ -349,6 +349,14 @@ export const ProductDetailPage: React.FC = () => {
               </div>
             )}
 
+            {/* Snack photos are illustrative: pack sizes can look different in a photo. */}
+            {product.type === 'snack' && (
+              <p className="mt-4 text-[11px] italic leading-relaxed text-stone-500">
+                Please note: product images are for illustration only. The item may not appear
+                to be exactly the size shown.
+              </p>
+            )}
+
             {/* Quantity & Add to Basket Button */}
             <div className="mt-6 pt-5 border-t border-stone-200 space-y-4">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

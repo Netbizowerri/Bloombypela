@@ -411,7 +411,7 @@ export const AdminDeliverySettings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Delivery Fee (pence)
+                  Juice Delivery Fee (pence)
                 </label>
                 <input
                   type="number"
@@ -589,7 +589,7 @@ export const AdminDeliverySettings: React.FC = () => {
               <tr>
                 <th className="py-3 px-5">Outward Code</th>
                 <th className="py-3 px-5">Area Name</th>
-                <th className="py-3 px-5">Delivery Fee</th>
+                <th className="py-3 px-5">Juice Delivery Fee</th>
                 <th className="py-3 px-5">Min Order</th>
                 <th className="py-3 px-5">Status</th>
                 <th className="py-3 px-5 text-right">Action</th>
@@ -776,7 +776,7 @@ export const AdminDeliverySettings: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Snack Flat Fee (pence)
+                  Snack Delivery Fee (pence)
                 </label>
                 <input
                   type="number"
@@ -791,6 +791,10 @@ export const AdminDeliverySettings: React.FC = () => {
                 />
               </div>
             </div>
+            <p className="text-[11px] text-stone-500 leading-relaxed">
+              The snack fee applies to snack-only orders. Any order containing fresh juices is
+              charged the juice delivery fee set on each area below.
+            </p>
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block">
                 Collection Enabled

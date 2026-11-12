@@ -42,11 +42,11 @@ export const MobileStickyFooter: React.FC = () => {
     },
     {
       title: 'Weekly Subscriptions',
-      subtitle: 'From £12.50/wk • Thursday deliveries',
+      subtitle: 'New plans coming soon',
       to: '/subscriptions',
       icon: RotateCcw,
       color: 'bg-[#faf2dc] text-[#8b5b1a] border-[#f5e3b5]',
-      badge: 'Save £3.00',
+      badge: 'Coming soon',
     },
     {
       title: 'Delivery Coverage',

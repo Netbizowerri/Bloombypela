@@ -1,4 +1,6 @@
-// PLACEHOLDER: Seed catalogue content. Replace with real subscription plans before launch.
+// PLACEHOLDER: weekly plan prices below are the old, unconfirmed values. The
+// storefront shows a "coming soon" state and never renders them until the owner
+// confirms the new costs based on the November 2026 product prices.
 import type { SubscriptionPlan } from '../../types/products.js';
 
 export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
@@ -6,7 +8,7 @@ export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'sub-weekly-bloom-3',
     name: 'Weekly Bloom 3',
     bottleCount: 3,
-    pricePence: 1250, // £12.50 / week
+    pricePence: 1250, // unconfirmed: old £12.50 / week value, not shown to customers
     frequency: 'weekly',
     description: '3 bespoke 330ml cold-pressed juices delivered fresh every Thursday to your doorstep in Newcastle.',
     features: [
@@ -21,7 +23,7 @@ export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'sub-weekly-bloom-5',
     name: 'Weekly Bloom 5 (Full Workweek)',
     bottleCount: 5,
-    pricePence: 1950, // £19.50 / week (Save £3.00)
+    pricePence: 1950, // unconfirmed: old £19.50 / week value, not shown to customers
     frequency: 'weekly',
     description: '5 cold-pressed wellness juices for everyday nourishing vitality throughout your work week.',
     features: [

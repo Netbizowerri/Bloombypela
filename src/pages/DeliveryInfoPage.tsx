@@ -38,9 +38,11 @@ export const DeliveryInfoPage: React.FC = () => {
 
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2">
           <MapPin className="h-6 w-6 text-[#245840]" />
-          <h3 className="font-serif text-lg font-bold text-stone-900">Free Delivery</h3>
+          <h3 className="font-serif text-lg font-bold text-stone-900">Delivery & Shipping</h3>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Local delivery is <strong>FREE on all orders over £30.00</strong>. Standard delivery fee is £3.50 for smaller orders.
+            Local delivery is <strong>FREE on orders over £30.00</strong>. Shipping depends on
+            what you order: <strong>£3.99 for snack-only orders</strong> and{' '}
+            <strong>£5.99 for orders containing fresh juices</strong> (heavier, chilled packs).
           </p>
         </div>
       </div>
@@ -52,7 +54,8 @@ export const DeliveryInfoPage: React.FC = () => {
             Eligible Newcastle Delivery Areas
           </h3>
           <p className="text-xs text-stone-500">
-            We currently deliver to the following UK outward postcode codes:
+            We currently deliver to the following UK outward postcode codes. Snack-only orders are
+            charged £3.99; the juice fee below applies to any order containing fresh juices.
           </p>
         </div>
 
@@ -62,7 +65,7 @@ export const DeliveryInfoPage: React.FC = () => {
               <tr>
                 <th className="py-3 px-6">Outward Postcode</th>
                 <th className="py-3 px-6">Area Name</th>
-                <th className="py-3 px-6">Delivery Fee</th>
+                <th className="py-3 px-6">Juice Delivery Fee</th>
                 <th className="py-3 px-6">Minimum Spend</th>
                 <th className="py-3 px-6">Free Delivery Threshold</th>
               </tr>

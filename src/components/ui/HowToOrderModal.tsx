@@ -76,12 +76,12 @@ export const HowToOrderModal: React.FC<HowToOrderModalProps> = ({ isOpen, onClos
           <div className="text-xs">
             <span className="font-bold text-gold-300 block">Weekly Juice Subscriptions</span>
             <span className="text-emerald-100 text-[11px]">
-              Save £3.00/wk and guarantee your Thursday bottle allocation.
+              New weekly plans are coming soon. Pricing will be published once finalised.
             </span>
           </div>
           <Link to="/subscriptions" onClick={onClose} className="shrink-0">
             <Button variant="gold" size="sm" className="text-xs font-bold text-stone-900">
-              View Plans
+              Learn More
             </Button>
           </Link>
         </div>

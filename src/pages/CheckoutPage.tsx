@@ -39,7 +39,9 @@ import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { EmptyState } from '../components/ui/EmptyState';
+import { PageLoader } from '../components/ui/PageLoader';
 import { deliveryApi } from '../lib/delivery';
+import { usePublicSettings } from '../features/delivery';
 import { checkoutApi } from '../lib/checkout';
 import type { CartItem } from '../types/cart';
 import type { Product } from '../types/products';
@@ -96,10 +98,15 @@ type QuoteData = {
 };
 
 export const CheckoutPage: React.FC = () => {
-  const { items, subtotalPence: cartSubtotal, hasJuices, hasSnacks, totalItems } = useCart();
+  const { items, subtotalPence: cartSubtotal, hasJuices, hasSnacks, totalItems, isLoading } = useCart();
   const { user } = useAuth();
   const { success, error: showError } = useToast();
+  const { data: publicSettings } = usePublicSettings();
   const navigate = useNavigate();
+
+  // Shipping is charged by item type: snack-only carts use the snack fee,
+  // anything containing fresh juice uses the area's juice fee.
+  const snackDeliveryFeePence = publicSettings?.snackFlatFeePence ?? 399;
 
   const [form, setForm] = useState<CheckoutForm>(() => ({
     ...EMPTY_FORM,
@@ -305,6 +312,12 @@ export const CheckoutPage: React.FC = () => {
     }
   }, [paying, canProceed, items, form]);
 
+  // Wait for the live catalogue before deciding the basket is empty: stored
+  // lines cannot be resolved until Firestore answers.
+  if (isLoading) {
+    return <PageLoader />;
+  }
+
   // Empty cart guard
   if (items.length === 0) {
     return (
@@ -495,7 +508,11 @@ export const CheckoutPage: React.FC = () => {
                     error={postcodeError ?? (!form.addressPostcode ? 'Postcode is required' : undefined)}
                     helperText={
                       postcodeChecked?.served
-                        ? `Serves ${postcodeChecked.area.areaName} — £${(postcodeChecked.area.feePence / 100).toFixed(2)} delivery`
+                        ? `Serves ${postcodeChecked.area.areaName} — ${formatPence(
+                            hasJuices
+                              ? postcodeChecked.area.feePence
+                              : snackDeliveryFeePence,
+                          )} delivery`
                         : undefined
                     }
                   />

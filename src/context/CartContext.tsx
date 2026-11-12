@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { CartItem, StoredCartItem } from '../types/cart';
 import { Product, ProductVariant } from '../types/products';
-import { SEED_PRODUCTS } from '../data/seed';
+import { useProducts } from '../features/catalogue';
 
 interface CartContextType {
   items: CartItem[];
+  /** True until the live catalogue has loaded, so the drawer can avoid an empty flash. */
+  isLoading: boolean;
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
@@ -76,6 +78,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [storedItems, setStoredItems] = useState<StoredCartItem[]>(readStoredCart);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Resolve every line from the live Firestore catalogue, never from the bundled
+  // seed: a price changed in the admin portal must be the price in the basket.
+  // Hidden or deleted products, and retired variants, drop out of the basket.
+  const { data: catalogue = [], isLoading: isCatalogueLoading } = useProducts();
+
   // Persist identifiers and quantities only. Prices and names are always resolved
   // from the catalogue below, so stale prices can never be read from storage.
   useEffect(() => {
@@ -88,7 +95,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const items = useMemo<CartItem[]>(() => {
     return storedItems.reduce<CartItem[]>((resolved, stored) => {
-      const product = SEED_PRODUCTS.find((candidate) => candidate.id === stored.productId);
+      const product = catalogue.find((candidate) => candidate.id === stored.productId);
       if (!product) return resolved;
 
       const variant = product.variants.find((candidate) => candidate.id === stored.variantId);
@@ -102,7 +109,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return resolved;
     }, []);
-  }, [storedItems]);
+  }, [storedItems, catalogue]);
 
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
@@ -173,6 +180,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <CartContext.Provider
       value={{
         items,
+        isLoading: isCatalogueLoading,
         isOpen,
         openCart,
         closeCart,

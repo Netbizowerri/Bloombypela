@@ -67,9 +67,12 @@ export interface CartQuote {
   juiceBottles: number;
 }
 
+// Used only when the publicSettings document is missing. Fees match the owner's
+// confirmed shipping: £3.99 for snack-only carts, £5.99 for carts with juices
+// (the juice fee lives on each delivery area, not here).
 const FALLBACK_SETTINGS: PublicSettings = {
   freeDeliveryThresholdPence: 3000,
-  snackFlatFeePence: 250,
+  snackFlatFeePence: 399,
   collectionEnabled: false,
 };
 

@@ -23,6 +23,7 @@ export const CartDrawer: React.FC = () => {
     isOpen,
     closeCart,
     items,
+    isLoading,
     updateQuantity,
     removeItem,
     clearCart,
@@ -166,7 +167,15 @@ export const CartDrawer: React.FC = () => {
                 ref={scrollContainerRef}
                 className="cart-scroller flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y px-4 sm:px-6 py-3 divide-y divide-stone-200/80 relative"
               >
-                {items.length === 0 ? (
+                {isLoading && items.length === 0 ? (
+                  <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-6 text-stone-500">
+                    <div
+                      className="h-10 w-10 rounded-full border-2 border-[#155d2c]/20 border-t-[#155d2c] animate-spin"
+                      aria-hidden="true"
+                    />
+                    <p className="mt-4 text-xs font-medium">Loading your basket…</p>
+                  </div>
+                ) : items.length === 0 ? (
                   <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-6 text-stone-500">
                     <div className="h-20 w-20 rounded-full bg-[#FFF5E6] border border-[#eedcc8] flex items-center justify-center mb-4 text-[#155d2c] shadow-xs">
                       <ShoppingBag className="h-10 w-10 text-[#155d2c]" />
