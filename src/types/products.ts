@@ -46,6 +46,12 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   isPopular?: boolean;
+  /**
+   * Firestore `createdAt` as epoch milliseconds. Used to surface the newest
+   * products on the homepage; absent on documents written before this field
+   * was read, which fall back to catalogue order.
+   */
+  createdAt?: number;
 }
 
 export interface ProductBundle {

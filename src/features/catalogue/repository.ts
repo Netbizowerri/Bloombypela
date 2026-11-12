@@ -50,6 +50,22 @@ function normalizeImages(images: unknown): ImageAsset[] {
   });
 }
 
+/**
+ * Reads a Firestore timestamp (or a plain number) as epoch milliseconds.
+ * Returns undefined when the document was written without `createdAt`.
+ */
+function readTimestampMillis(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (value && typeof value === 'object' && 'toMillis' in value) {
+    const candidate = value as { toMillis?: unknown };
+    if (typeof candidate.toMillis === 'function') {
+      const millis = (candidate.toMillis as () => number)();
+      if (Number.isFinite(millis)) return millis;
+    }
+  }
+  return undefined;
+}
+
 function docToProduct(snap: DocumentData): Product {
   const data = snap.data() as Record<string, unknown>;
   return {
@@ -73,6 +89,7 @@ function docToProduct(snap: DocumentData): Product {
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : undefined,
     seoDescription: typeof data.seoDescription === 'string' ? data.seoDescription : undefined,
     isPopular: typeof data.isPopular === 'boolean' ? data.isPopular : undefined,
+    createdAt: readTimestampMillis(data.createdAt),
   };
 }
 

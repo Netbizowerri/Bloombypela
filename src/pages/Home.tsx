@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -28,20 +28,21 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageLoader } from '../components/ui/PageLoader';
-import { useProducts } from '../features/catalogue';
+import { useProducts, selectFeaturedProducts } from '../features/catalogue';
 import { motion } from 'motion/react';
 
 export const HomePage: React.FC = () => {
   const { addItem, openCart } = useCart();
   const { success } = useToast();
   const [howToOrderOpen, setHowToOrderOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<'all' | 'snack' | 'juice'>('all');
   const [postcodeCheck, setPostcodeCheck] = useState('');
   const [postcodeResult, setPostcodeResult] = useState<{ eligible: boolean; area?: string } | null>(null);
 
-  const { data: products = [], isLoading, isError, error } = useProducts({
-    type: activeCategory === 'all' ? undefined : activeCategory,
-  });
+  const { data: products = [], isLoading, isError, error } = useProducts();
+
+  // The homepage shows a curated eight: the four newest snacks and the four
+  // newest drinks. The full catalogue lives on /shop.
+  const featured = useMemo(() => selectFeaturedProducts(products, 4), [products]);
 
   if (isLoading) return <PageLoader />;
   if (isError) {
@@ -312,7 +313,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* =========================================================================
-          CATALOGUE DISCOVERY TABS & PRODUCT CARDS
+          FEATURED PRODUCTS: 4 NEWEST SNACKS + 4 NEWEST DRINKS
           ========================================================================= */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-left space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 pb-6">
@@ -327,55 +328,18 @@ export const HomePage: React.FC = () => {
               Life in Every Bite (Nigerian snacks) • Life in Every Sip (Cold-pressed juices)
             </p>
           </div>
-
-          {/* Interactive Filter Pills */}
-          <div className="flex items-center gap-2 bg-stone-100 p-1.5 rounded-xl border border-stone-200 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setActiveCategory('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeCategory === 'all'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              All Items
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveCategory('snack')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeCategory === 'snack'
-                  ? 'bg-[#c9932b] text-white shadow-xs'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              Snacks
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveCategory('juice')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeCategory === 'juice'
-                  ? 'bg-[#155d2c] text-white shadow-xs'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              Fresh juices and drinks
-            </button>
-          </div>
         </div>
 
-        {/* Product Cards Grid: 2 Columns on Mobile, 2 on Tablet, 3 on Desktop */}
-        {products.length === 0 ? (
+        {/* Product Cards Grid: 2 Columns on Mobile, 4 on Desktop */}
+        {featured.length === 0 ? (
           <EmptyState
             icon={PackageOpen}
             title="No treats right now"
             description="The weekly drop has sold out or hasn't landed yet. Check back soon."
           />
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-8">
-            {products.map((product) => {
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 lg:gap-6">
+            {featured.map((product) => {
               const defaultVariant = product.variants[0];
               const featureImage = product.images[0];
 
@@ -455,6 +419,17 @@ export const HomePage: React.FC = () => {
           })}
         </div>
         )}
+
+        {/* The curated row above is a teaser; the full catalogue is on /shop. */}
+        <div className="flex justify-center">
+          <Link
+            to="/shop"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#155d2c]/40 px-6 py-3 text-base font-medium text-[#155d2c] transition-colors hover:bg-[#f0f7f2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#155d2c] focus-visible:ring-offset-2"
+          >
+            View all products
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
       </section>
 
       {/* =========================================================================
