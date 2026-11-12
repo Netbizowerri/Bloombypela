@@ -10,6 +10,12 @@ import { cld, cloudinaryPublicId } from '../../lib/cld';
 import { UK_ALLERGENS } from '../../lib/utils';
 import { CLOUDINARY_UPLOAD_URL, CLOUDINARY_UPLOAD_PRESET, PRODUCT_IMAGE_FOLDER } from '../../lib/cloudinary';
 import { useProducts } from '../../features/catalogue';
+import {
+  JUICE_PACK_FORMATS,
+  JUICE_PACK_FORMAT_LIST,
+  detectJuicePackFormat,
+  type JuicePackFormat,
+} from '../../features/catalogue';
 import { catalogueAdmin } from '../../features/catalogue/adminRepository';
 import { describeCallableError } from '../../lib/callableError';
 import { useToast } from '../../context/ToastContext';
@@ -298,6 +304,13 @@ export const AdminCatalogue: React.FC = () => {
   const allergens = (useWatch({ control: form.control, name: 'allergens' }) ?? []) as Allergen[];
   const status = useWatch({ control: form.control, name: 'status' });
   const isPopular = useWatch({ control: form.control, name: 'isPopular' });
+  const productType = useWatch({ control: form.control, name: 'type' });
+  /**
+   * Drinks are only sold in packs, so the form tracks which pack shape a drink
+   * uses: the two presets, `custom` for an older single-drink product that must
+   * be converted, or `snack` for products sold as they are.
+   */
+  const [packFormat, setPackFormat] = useState<JuicePackFormat | 'snack' | 'custom'>('snack');
   const fileInputRef = useRef<HTMLInputElement>(null);
   /**
    * Public ids uploaded during the current edit session. Only these are safe
@@ -306,7 +319,7 @@ export const AdminCatalogue: React.FC = () => {
    */
   const sessionUploads = useRef<Set<string>>(new Set());
 
-  const { fields: variantFields, append, remove, move } = useFieldArray({
+  const { fields: variantFields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: 'variants',
   });
@@ -319,13 +332,93 @@ export const AdminCatalogue: React.FC = () => {
         id: product.id,
         variants: product.variants.length ? product.variants : [createVariant()],
       } : defaultProduct());
+      setPackFormat(
+        product?.type === 'juice'
+          ? detectJuicePackFormat(product.variants) ?? 'custom'
+          : 'snack',
+      );
       setEditing(product);
       setOpen(true);
     },
     [form],
   );
 
+  /**
+   * Replaces the variant rows with a pack preset.
+   *
+   * Prices are cleared on purpose: a pack price is not the old single price, so
+   * staff must type the pack amount. Stock starts at 100 like every other new
+   * pack, and SKUs are typed per catalogue.
+   */
+  const applyPackFormat = useCallback(
+    (format: JuicePackFormat) => {
+      const preset = JUICE_PACK_FORMATS[format];
+      replace(
+        preset.variants.map((variant, index) => ({
+          id: crypto.randomUUID(),
+          name: variant.name,
+          pricePence: Number.NaN,
+          sku: '',
+          stock: 100,
+          isDefault: index === 0,
+        })),
+      );
+      form.setValue('weightOrVolume', preset.weightOrVolume, { shouldDirty: true });
+      form.clearErrors('variants');
+      setPackFormat(format);
+      success('Pack format applied', 'Enter the price, SKU and stock for each pack.');
+    },
+    [form, replace, success],
+  );
+
+  /** Asks before throwing away typed pack prices when switching format. */
+  const handlePackFormatChange = useCallback(
+    (format: JuicePackFormat) => {
+      if (format === packFormat) return;
+      const hasPrices = form
+        .getValues('variants')
+        .some((variant) => Number.isFinite(variant.pricePence) && variant.pricePence > 0);
+      if (
+        hasPrices &&
+        !window.confirm(
+          'Replace the current variant rows with the pack presets? Their prices will need re-entering.',
+        )
+      ) {
+        return;
+      }
+      applyPackFormat(format);
+    },
+    [applyPackFormat, form, packFormat],
+  );
+
   const onSubmit = async (values: ClientProductInput) => {
+    // Drinks are never sold singly: a six-pack or a 14/30 bottle pack only.
+    if (values.type === 'juice') {
+      if (packFormat === 'snack' || packFormat === 'custom') {
+        form.setError('variants', {
+          type: 'manual',
+          message:
+            'Choose a pack format: drinks are sold as a pack of 6, or as 14 and 30 bottle packs.',
+        });
+        showError('Choose a pack format', 'Drinks are never sold singly.');
+        return;
+      }
+
+      // Accept any existing pack wording with the right shape (an older
+      // "Pack of 6 × 330ml Bottles" is still a six-pack), but not a single size.
+      const preset = JUICE_PACK_FORMATS[packFormat];
+      const matchesPreset =
+        values.variants.length === preset.variants.length &&
+        detectJuicePackFormat(values.variants) === packFormat;
+      if (!matchesPreset) {
+        form.setError('variants', {
+          type: 'manual',
+          message: 'Re-select the pack format so the variant rows match it.',
+        });
+        return;
+      }
+    }
+
     const slug = values.slug.trim().toLowerCase();
     const slugTaken = products.some(
       (product) => product.id !== values.id && product.slug.trim().toLowerCase() === slug,
@@ -355,6 +448,7 @@ export const AdminCatalogue: React.FC = () => {
       setOpen(false);
       setEditing(null);
       form.reset(defaultProduct());
+      setPackFormat('snack');
     } catch (err) {
       showError('Save failed', describeSaveError(err));
     }
@@ -800,7 +894,21 @@ export const AdminCatalogue: React.FC = () => {
                     Type
                   </label>
                   <select
-                    {...form.register('type')}
+                    {...form.register('type', {
+                      onChange: (event) => {
+                        const next = event.target.value as 'snack' | 'juice';
+                        if (next === 'juice') {
+                          // Never auto-rewrite variants here; the format chooser
+                          // below asks before replacing rows.
+                          setPackFormat(
+                            detectJuicePackFormat(form.getValues('variants')) ?? 'custom',
+                          );
+                        } else {
+                          setPackFormat('snack');
+                          form.clearErrors('variants');
+                        }
+                      },
+                    })}
                     className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                   >
                     <option value="snack">Snack</option>
@@ -1010,27 +1118,87 @@ export const AdminCatalogue: React.FC = () => {
               <div className="space-y-2 border-t border-stone-100 pt-4">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                    Variants
+                    {productType === 'juice' ? 'Pack format & packs' : 'Variants'}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => append(createVariant())}
-                    className="text-[10px] text-[#7e2b44] hover:text-[#5a1f2e] underline underline-offset-4"
-                    disabled={form.formState.isSubmitting}
-                  >
-                    + Add variant
-                  </button>
+                  {productType === 'snack' && (
+                    <button
+                      type="button"
+                      onClick={() => append(createVariant())}
+                      className="text-[10px] text-[#7e2b44] hover:text-[#5a1f2e] underline underline-offset-4"
+                      disabled={form.formState.isSubmitting}
+                    >
+                      + Add size
+                    </button>
+                  )}
                 </div>
+
+                {productType === 'juice' && (
+                  <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                      Drinks are only sold in packs
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {JUICE_PACK_FORMAT_LIST.map((preset) => {
+                        const selected = packFormat === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handlePackFormatChange(preset.id)}
+                            aria-pressed={selected}
+                            disabled={form.formState.isSubmitting}
+                            className={`rounded-lg border bg-white px-3 py-2 text-left transition-colors ${
+                              selected
+                                ? 'border-[#155d2c] ring-1 ring-[#155d2c]'
+                                : 'border-stone-200 hover:border-stone-300'
+                            }`}
+                          >
+                            <span className="block text-xs font-bold text-stone-900">
+                              {preset.label}
+                            </span>
+                            <span className="mt-0.5 block text-[10px] text-stone-500">
+                              {preset.summary}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {packFormat === 'custom' && (
+                      <p
+                        role="alert"
+                        className="rounded-lg border border-[#f5e3b5] bg-[#faf2dc] px-3 py-2 text-[11px] text-[#8b5b1a]"
+                      >
+                        This product still uses single-drink sizes. Choose a pack format above to
+                        replace them — a drink cannot be saved singly.
+                      </p>
+                    )}
+                    <p className="text-[10px] text-stone-500">
+                      Prices, SKUs and stock below are per pack.
+                    </p>
+                  </div>
+                )}
+
+                {form.formState.errors.variants?.message && (
+                  <p className="text-[10px] text-[#c93c3c]">
+                    {form.formState.errors.variants.message}
+                  </p>
+                )}
                 <div className="space-y-2">
                   {variantFields.map((field, index) => (
                     <div key={field.id} className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-start">
                       <div className="space-y-1">
                         <label className="text-[10px] text-stone-500">Variant name</label>
-                        <input
-                          {...form.register(`variants.${index}.name`)}
-                          className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
-                          placeholder="e.g. 250g"
-                        />
+                        {productType === 'juice' ? (
+                          <p className="w-full rounded border border-stone-200 bg-stone-50 px-2 py-1.5 text-xs font-semibold text-stone-800">
+                            {variantFields[index]?.name}
+                          </p>
+                        ) : (
+                          <input
+                            {...form.register(`variants.${index}.name`)}
+                            className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                            placeholder="e.g. 250g"
+                          />
+                        )}
                         {form.formState.errors.variants?.[index]?.name && (
                           <p className="text-[10px] text-[#c93c3c]">
                             {form.formState.errors.variants[index]?.name?.message}
@@ -1083,7 +1251,7 @@ export const AdminCatalogue: React.FC = () => {
                           </p>
                         )}
                       </div>
-                      {variantFields.length > 1 && (
+                      {productType === 'snack' && variantFields.length > 1 && (
                         <button
                           type="button"
                           onClick={() => remove(index)}
