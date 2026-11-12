@@ -32,7 +32,8 @@ const VariantSchema = z.object({
   id: z.string().trim().min(1),
   name: z.string().trim().min(1),
   pricePence: z.number().int().nonnegative(),
-  sku: z.string().trim().min(1),
+  // Optional: not every product carries a SKU, so blank is stored as ''.
+  sku: z.string().trim().max(64).optional().default(''),
   stock: z.number().int().nonnegative(),
   isDefault: z.boolean().optional(),
   image: z

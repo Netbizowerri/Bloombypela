@@ -21,7 +21,7 @@ export interface JuicePackPreset {
   summary: string;
   /** Stored in `weightOrVolume` when the format is applied. */
   weightOrVolume: string;
-  /** Variant names, in display order. Prices and SKUs are entered by staff. */
+  /** Variant names, in display order. Prices are entered by staff; SKU is optional. */
   variants: { name: string }[];
 }
 

@@ -151,7 +151,8 @@ export const createCheckoutSession = onCall(
           unit_amount: line.unitPricePence,
           product_data: {
             name: lineItemName(line.name, line.variantName),
-            metadata: { sku: line.sku },
+            // SKUs are optional, and Stripe metadata should not carry blanks.
+            ...(line.sku ? { metadata: { sku: line.sku } } : {}),
           },
         },
       }),

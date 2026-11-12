@@ -123,7 +123,9 @@ const ClientProductSchema = z.object({
         .number({ error: 'Enter a price in pounds, for example 7.99.' })
         .int('Use pounds and pence, for example 7.99.')
         .nonnegative('Price cannot be negative.'),
-      sku: z.string().min(1, 'SKU is required.'),
+      // SKU is optional: staff sometimes do not assign one, so an empty value
+      // is stored as an empty string rather than blocking the save.
+      sku: z.string().trim().max(64, 'SKU is too long (64 characters maximum).'),
       stock: z
         .number({ error: 'Enter the stock count.' })
         .int('Use a whole number.')
@@ -348,7 +350,7 @@ export const AdminCatalogue: React.FC = () => {
    *
    * Prices are cleared on purpose: a pack price is not the old single price, so
    * staff must type the pack amount. Stock starts at 100 like every other new
-   * pack, and SKUs are typed per catalogue.
+   * pack, and a SKU is only needed if the catalogue actually uses one.
    */
   const applyPackFormat = useCallback(
     (format: JuicePackFormat) => {
@@ -366,7 +368,10 @@ export const AdminCatalogue: React.FC = () => {
       form.setValue('weightOrVolume', preset.weightOrVolume, { shouldDirty: true });
       form.clearErrors('variants');
       setPackFormat(format);
-      success('Pack format applied', 'Enter the price, SKU and stock for each pack.');
+      success(
+        'Pack format applied',
+        'Enter the price and stock for each pack. SKU is optional.',
+      );
     },
     [form, replace, success],
   );
@@ -1173,7 +1178,7 @@ export const AdminCatalogue: React.FC = () => {
                       </p>
                     )}
                     <p className="text-[10px] text-stone-500">
-                      Prices, SKUs and stock below are per pack.
+                      Prices and stock below are per pack. SKU is optional.
                     </p>
                   </div>
                 )}
@@ -1223,10 +1228,11 @@ export const AdminCatalogue: React.FC = () => {
                         )}
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-stone-500">SKU</label>
+                        <label className="text-[10px] text-stone-500">SKU (optional)</label>
                         <input
                           {...form.register(`variants.${index}.sku`)}
                           className="w-full text-xs rounded border border-stone-200 px-2 py-1.5 focus:ring-1 focus-ring-[#7e2b44] outline-none"
+                          placeholder="Leave blank if unused"
                         />
                         {form.formState.errors.variants?.[index]?.sku && (
                           <p className="text-[10px] text-[#c93c3c]">
