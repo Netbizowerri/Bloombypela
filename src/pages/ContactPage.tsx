@@ -63,7 +63,7 @@ export const ContactPage: React.FC = () => {
           <div className="bg-[#faf1de] p-5 rounded-2xl border border-[#f4e1ba] text-xs text-[#73451c] space-y-1">
             <h4 className="font-bold">Weekly Order Support</h4>
             <p className="leading-relaxed">
-              For immediate changes to your Thursday juice delivery, please ensure requests reach us before Monday 12:00 PM.
+              For changes to your juice delivery, please contact us as early as possible and we will do our best to help.
             </p>
           </div>
         </div>

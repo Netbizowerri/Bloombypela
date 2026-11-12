@@ -11,13 +11,12 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { invalidArgument } from '../lib/errors';
 import {
   computeDeliveryFee,
-  getAvailableDates,
-  isAreaServed,
+  JUICE_DELIVERY_FEE_PENCE,
+  SNACK_DELIVERY_FEE_PENCE,
   parseOutwardCode,
 } from '../delivery';
 import { computeQuoteCore, type QuoteLine } from './pricing';
 import type {
-  DateCapacity,
   DeliveryArea,
   Product,
   ProductVariant,
@@ -67,12 +66,11 @@ export interface CartQuote {
   juiceBottles: number;
 }
 
-// Used only when the publicSettings document is missing. Fees match the owner's
-// confirmed shipping: £3.99 for snack-only carts, £5.99 for carts with juices
-// (the juice fee lives on each delivery area, not here).
+// Used only when the publicSettings document is missing. The fixed delivery
+// rates are enforced independently of persisted area/settings values.
 const FALLBACK_SETTINGS: PublicSettings = {
   freeDeliveryThresholdPence: 3000,
-  snackFlatFeePence: 399,
+  snackFlatFeePence: SNACK_DELIVERY_FEE_PENCE,
   collectionEnabled: false,
 };
 
@@ -97,8 +95,10 @@ async function loadProducts(
  * Computes an authoritative quote from Firestore.
  *
  * Throws an `invalid-argument` HttpsError when the request cannot be priced at
- * all (unknown product, invalid postcode, unserved area, unavailable date).
- * Individual unavailable lines are reported through `warnings` instead.
+ * all (unknown product). The postcode is used only to look up the delivery
+ * delivery area - it is no longer an eligibility gate, and no delivery date is
+ * required (juices are sold as they are ordered). Individual unavailable
+ * lines are reported through `warnings` instead.
  */
 export async function computeCartQuote(
   db: Firestore,
@@ -194,11 +194,15 @@ export async function computeCartQuote(
     : FALLBACK_SETTINGS;
 
   if (fulfilment === 'delivery') {
-    let outwardCode: string;
+    // The postcode is used to look up the delivery area. It is not an
+    // eligibility gate: orders are not rejected because of a postcode, and an
+    // unrecognised postcode falls back to the standard fees instead of
+    // blocking checkout.
+    let outwardCode: string | null = null;
     try {
       outwardCode = parseOutwardCode(postcode);
     } catch {
-      throw invalidArgument('Invalid UK postcode format');
+      // Not a valid UK postcode format - fall back to the standard fees.
     }
 
     const areasSnap = await db
@@ -218,73 +222,31 @@ export async function computeCartQuote(
       };
     });
 
-    if (!isAreaServed(outwardCode, areas)) {
-      throw invalidArgument(`Postcode ${postcode} is not in our delivery area`);
-    }
-
     const area =
-      areas.find(
-        (candidate) =>
-          candidate.outwardCode.toUpperCase() === outwardCode.toUpperCase(),
-      ) ?? null;
+      outwardCode !== null
+        ? areas.find(
+            (candidate) =>
+              candidate.outwardCode.toUpperCase() === outwardCode.toUpperCase(),
+          ) ?? null
+        : null;
 
     areaName = area?.areaName ?? null;
 
-    deliveryFeePence = computeDeliveryFee(
-      subtotalPence,
-      area,
-      settings,
-      hasJuices,
-      hasSnacks,
-    );
-
-    if (hasJuices && deliveryDate) {
-      const scheduleSnap = await db.collection('deliverySchedule').get();
-      const schedule = scheduleSnap.docs.map((doc) => {
-        const data = doc.data() as Record<string, unknown>;
-        return {
-          id: doc.id,
-          weekday: Number(data.weekday),
-          cutoffTime: String(data.cutoffTime ?? ''),
-          leadDays: Number(data.leadDays ?? 0),
-          isActive: Boolean(data.isActive),
-        };
-      });
-
-      const closedSnap = await db.collection('closedDates').get();
-      const closedDates = closedSnap.docs.map((doc) => {
-        const data = doc.data() as Record<string, unknown>;
-        return {
-          id: doc.id,
-          date: String(data.date),
-          reason: String(data.reason ?? ''),
-        };
-      });
-
-      const capacitySnap = await db.collection('dateCapacity').get();
-      const capacity: DateCapacity[] = capacitySnap.docs.map((doc) => {
-        const data = doc.data() as Record<string, unknown>;
-        return {
-          date: String(data.date),
-          juiceCapacity: Number(data.juiceCapacity ?? 0),
-          juiceReserved: Number(data.juiceReserved ?? 0),
-          juiceHeld: Number(data.juiceHeld ?? 0),
-          subscriberShare: Number(data.subscriberShare ?? 0),
-          closed: Boolean(data.closed),
-        };
-      });
-
-      const availableDates = getAvailableDates(
-        now,
-        schedule,
-        closedDates,
-        capacity,
-        true,
+    if (area) {
+      deliveryFeePence = computeDeliveryFee(
+        subtotalPence,
+        area,
+        settings,
+        hasJuices,
+        hasSnacks,
       );
-
-      if (!availableDates.includes(deliveryDate)) {
-        throw invalidArgument(`Delivery date ${deliveryDate} is not available`);
-      }
+    } else {
+      // No matching delivery area: apply the fixed rates rather than block checkout.
+      deliveryFeePence = hasJuices
+        ? JUICE_DELIVERY_FEE_PENCE
+        : hasSnacks
+          ? SNACK_DELIVERY_FEE_PENCE
+          : 0;
     }
   }
 

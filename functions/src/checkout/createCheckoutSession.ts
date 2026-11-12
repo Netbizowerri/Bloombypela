@@ -114,10 +114,6 @@ export const createCheckoutSession = onCall(
       throw invalidArgument('The order total must be greater than zero.');
     }
 
-    if (fulfilment === 'delivery' && quote.hasJuices && !quote.deliveryDate) {
-      throw invalidArgument('Please choose a delivery date for your juices.');
-    }
-
     const reservation = await createReservation(
       db,
       quote,

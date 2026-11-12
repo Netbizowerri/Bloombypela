@@ -28,7 +28,6 @@ export interface CheckoutRequest {
     city: string;
     postcode: string;
   } | null;
-  deliveryDate?: string | null;
   notes?: string;
   promoCode?: string | null;
 }

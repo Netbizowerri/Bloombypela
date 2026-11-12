@@ -1,5 +1,5 @@
-// Seed delivery areas. `feePence` is the fresh-juice delivery fee (owner-set at
-// £5.99 for every area); snack-only orders use snackFlatFeePence instead.
+// Seed delivery areas. The stored fee is retained for compatibility; delivery
+// charges are fixed at £5.99 for juice and £3.99 for snacks in shipping logic.
 import type { DeliveryArea } from '../../types/delivery.js';
 
 export const SEED_DELIVERY_AREAS: DeliveryArea[] = [

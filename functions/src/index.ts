@@ -17,10 +17,6 @@ export {
 } from './catalogue';
 
 export {
-  checkPostcode,
-  getAvailableDatesCallable,
-} from './delivery/callables';
-export {
   createDeliveryArea,
   updateDeliveryArea,
   deleteDeliveryArea,

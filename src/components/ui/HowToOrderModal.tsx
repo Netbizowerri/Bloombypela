@@ -21,17 +21,17 @@ export const HowToOrderModal: React.FC<HowToOrderModalProps> = ({ isOpen, onClos
     },
     {
       step: '02',
-      title: 'Monday 12:00 PM Cut-off',
+      title: 'Order Any Time',
       description:
-        'All orders for Thursday fulfillment close Mondays at 12:00 PM London time. This gives our kitchen exact batch numbers to press fresh without food waste.',
+        'Place your order whenever you like - there is no order cut-off. Juices and snacks are prepared fresh as they are ordered.',
       icon: Clock,
       color: 'bg-[#faf2dc] text-[#8b5b1a] border-[#f5e3b5]',
     },
     {
       step: '03',
-      title: 'Thursday Delivery or Easy Pickup',
+      title: 'Delivery or Collection',
       description:
-        'Every Thursday, our driver hand-delivers your chilled package across Newcastle (NE1–NE10). Free on orders over £30. Local Jesmond pickup also available.',
+        'We deliver fresh across Newcastle (NE1–NE10) and offer local click & collect in Jesmond and the City Centre. Delivery fees are shown at checkout.',
       icon: Truck,
       color: 'bg-emerald-50 text-[#155d2c] border-emerald-200',
     },

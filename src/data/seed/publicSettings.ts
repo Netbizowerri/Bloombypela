@@ -1,6 +1,5 @@
-// Seed delivery settings. Shipping is charged by item type: snack-only orders
-// use snackFlatFeePence, while any cart containing fresh juices uses the
-// delivery area's feePence (set to £5.99 for every area).
+// Seed delivery settings. The legacy threshold field controls delivery
+// progress copy; fixed shipping rates are enforced in shipping logic.
 import type { PublicSettings } from '../../types/delivery.js';
 
 export const SEED_PUBLIC_SETTINGS: PublicSettings = {

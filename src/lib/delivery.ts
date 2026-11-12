@@ -3,7 +3,7 @@
  *
  * Two very different halves:
  *
- * - Storefront reads (`checkPostcode`, `getAvailableDates`, `quoteCart`) are
+ * - Storefront reads (`quoteCart`) are
  *   still Cloud Functions. They need server-side pricing logic and cannot run
  *   on the Spark plan, which is why checkout is not available on this plan.
  * - Admin configuration (`createDeliveryArea`, `upsertDeliverySchedule`,
@@ -17,16 +17,6 @@ import { requireAdminDb, stripUndefinedDeep } from './firestoreWrite';
 import { audit } from './audit';
 
 export type { DeliveryArea, DeliveryScheduleDay, ClosedDate, DateCapacity, PublicSettings } from '../types/delivery';
-
-const checkPostcodeFn = callable<
-  { postcode: string },
-  { served: boolean; outwardCode: string; area: { id: string; outwardCode: string; areaName: string; feePence: number; minimumOrderPence: number; isActive: boolean } | null }
->('checkPostcode');
-
-const getAvailableDatesFn = callable<
-  { now: string; hasJuices?: boolean },
-  { dates: string[] }
->('getAvailableDates');
 
 const quoteCartFn = callable<
   { items: { productId: string; variantId: string; quantity: number }[]; postcode: string; fulfilment: 'delivery' | 'collection'; deliveryDate?: string | null; promoCode?: string | null },
@@ -72,8 +62,6 @@ export type PublicSettingsInput = {
 };
 
 export const deliveryApi = {
-  checkPostcode: (postcode: string) => checkPostcodeFn({ postcode }),
-  getAvailableDates: (now: string, hasJuices?: boolean) => getAvailableDatesFn({ now, hasJuices }),
   quoteCart: (data: Parameters<typeof quoteCartFn>[0]) => quoteCartFn(data),
 
   async createDeliveryArea(input: DeliveryAreaInput) {

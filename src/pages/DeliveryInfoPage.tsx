@@ -14,7 +14,7 @@ export const DeliveryInfoPage: React.FC = () => {
           Delivery Information & Schedule
         </h1>
         <p className="text-xs sm:text-sm text-stone-600 mt-2">
-          Everything you need to know about our Newcastle delivery schedule, cut-off hours, and postcode coverage.
+          Everything you need to know about our Newcastle delivery coverage and shipping.
         </p>
       </div>
 
@@ -22,17 +22,17 @@ export const DeliveryInfoPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2">
           <Truck className="h-6 w-6 text-[#7e2b44]" />
-          <h3 className="font-serif text-lg font-bold text-stone-900">Weekly Delivery Day</h3>
+          <h3 className="font-serif text-lg font-bold text-stone-900">Local Delivery</h3>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Deliveries take place every <strong>Thursday between 08:30 and 15:00</strong> across Newcastle upon Tyne.
+            Deliveries take place across Newcastle upon Tyne.
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2">
           <Clock className="h-6 w-6 text-[#cb932b]" />
-          <h3 className="font-serif text-lg font-bold text-stone-900">Order Cut-off</h3>
+          <h3 className="font-serif text-lg font-bold text-stone-900">Order Anytime</h3>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Orders for Thursday delivery close strictly on <strong>Monday at 12:00 PM London time</strong> so our kitchen can prepare exact batches.
+            Place your order any time. Juices and snacks are prepared fresh as they are ordered.
           </p>
         </div>
 
@@ -40,9 +40,9 @@ export const DeliveryInfoPage: React.FC = () => {
           <MapPin className="h-6 w-6 text-[#245840]" />
           <h3 className="font-serif text-lg font-bold text-stone-900">Delivery & Shipping</h3>
           <p className="text-xs text-stone-600 leading-relaxed">
-            Local delivery is <strong>FREE on orders over £30.00</strong>. Shipping depends on
-            what you order: <strong>£3.99 for snack-only orders</strong> and{' '}
-            <strong>£5.99 for orders containing fresh juices</strong> (heavier, chilled packs).
+            Local delivery is <strong>FREE on orders over Ã‚Â£30.00</strong>. Shipping depends on
+            what you order: <strong>Ã‚Â£3.99 for snack-only orders</strong> and{' '}
+            <strong>Ã‚Â£5.99 for orders containing fresh juices</strong> (heavier, chilled packs).
           </p>
         </div>
       </div>
@@ -55,7 +55,7 @@ export const DeliveryInfoPage: React.FC = () => {
           </h3>
           <p className="text-xs text-stone-500">
             We currently deliver to the following UK outward postcode codes. Snack-only orders are
-            charged £3.99; the juice fee below applies to any order containing fresh juices.
+            charged Ã‚Â£3.99; the juice fee below applies to any order containing fresh juices.
           </p>
         </div>
 
@@ -93,7 +93,7 @@ export const DeliveryInfoPage: React.FC = () => {
         <div className="text-xs text-[#73451c] space-y-1">
           <h4 className="font-bold">Important Notice Regarding Perishable Juices</h4>
           <p className="leading-relaxed">
-            Our cold-pressed juices are raw and unpasteurised. Please ensure someone is available at the delivery address on Thursday to receive and refrigerate your bottles immediately (store below 4°C). Consume within 5 days of delivery.
+            Our cold-pressed juices are raw and unpasteurised. Please ensure someone is available at the delivery address to receive and refrigerate your bottles immediately (store below 4Ã‚Â°C). Consume within 5 days of delivery.
           </p>
         </div>
       </div>

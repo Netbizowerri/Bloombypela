@@ -12,6 +12,11 @@ import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
 import { Plus, Edit, Trash2, Clock, ShieldCheck, Truck, Save } from 'lucide-react';
 import { z } from 'zod';
+import {
+  DEFAULT_JUICE_SHIPPING_PENCE,
+  DEFAULT_SNACK_SHIPPING_PENCE,
+  DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
+} from '../../lib/shipping';
 
 const AreaFormSchema = z.object({
   outwardCode: z.string().trim().min(1).max(10),
@@ -115,6 +120,26 @@ export const AdminDeliverySettings: React.FC = () => {
 
   const isSubmitting = (id: string) => submitting.has(id);
 
+  const updateSettingsForm = (
+    patch: Partial<{
+      freeDeliveryThresholdPence: number;
+      snackFlatFeePence: number;
+      collectionEnabled: boolean;
+      collectionDetails: string | null;
+    }>,
+  ) => {
+    setSettingsForm((prev) => ({
+      freeDeliveryThresholdPence:
+        prev?.freeDeliveryThresholdPence ??
+        settings?.freeDeliveryThresholdPence ??
+        DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
+      snackFlatFeePence: DEFAULT_SNACK_SHIPPING_PENCE,
+      collectionEnabled: prev?.collectionEnabled ?? settings?.collectionEnabled ?? false,
+      collectionDetails: prev?.collectionDetails ?? settings?.collectionDetails ?? null,
+      ...patch,
+    }));
+  };
+
   /** Stored schedule row for a weekday, if the owner has configured one. */
   const scheduleForWeekday = (weekday: number) =>
     schedule.find((entry) => Number(entry.weekday) === weekday);
@@ -143,7 +168,7 @@ export const AdminDeliverySettings: React.FC = () => {
     setAreaForm({
       outwardCode: '',
       areaName: '',
-      feePence: 0,
+      feePence: DEFAULT_JUICE_SHIPPING_PENCE,
       minimumOrderPence: 0,
       isActive: true,
     });
@@ -154,7 +179,7 @@ export const AdminDeliverySettings: React.FC = () => {
     setAreaForm({
       outwardCode: area.outwardCode,
       areaName: area.areaName,
-      feePence: area.feePence,
+      feePence: DEFAULT_JUICE_SHIPPING_PENCE,
       minimumOrderPence: area.minimumOrderPence,
       isActive: area.isActive,
     });
@@ -175,7 +200,7 @@ export const AdminDeliverySettings: React.FC = () => {
           id: editingAreaId,
           outwardCode: parsed.data.outwardCode,
           areaName: parsed.data.areaName,
-          feePence: parsed.data.feePence,
+          feePence: DEFAULT_JUICE_SHIPPING_PENCE,
           minimumOrderPence: parsed.data.minimumOrderPence,
           isActive: parsed.data.isActive,
         });
@@ -184,7 +209,7 @@ export const AdminDeliverySettings: React.FC = () => {
         await deliveryApi.createDeliveryArea({
           outwardCode: parsed.data.outwardCode,
           areaName: parsed.data.areaName,
-          feePence: parsed.data.feePence,
+          feePence: DEFAULT_JUICE_SHIPPING_PENCE,
           minimumOrderPence: parsed.data.minimumOrderPence,
           isActive: parsed.data.isActive,
         });
@@ -235,7 +260,7 @@ export const AdminDeliverySettings: React.FC = () => {
 
       await deliveryApi.updatePublicSettings({
         freeDeliveryThresholdPence: parsed.data.freeDeliveryThresholdPence,
-        snackFlatFeePence: parsed.data.snackFlatFeePence,
+        snackFlatFeePence: DEFAULT_SNACK_SHIPPING_PENCE,
         collectionEnabled: parsed.data.collectionEnabled,
         collectionDetails: parsed.data.collectionDetails,
       });
@@ -363,7 +388,7 @@ export const AdminDeliverySettings: React.FC = () => {
             Delivery Configuration
           </h2>
           <p className="text-xs text-stone-500 mt-1">
-            Configure outward postcodes, minimum spends, free delivery thresholds, and cut-off rules.
+            Configure outward postcodes, minimum spends, delivery progress targets, and cut-off rules.
           </p>
         </div>
         <Button
@@ -411,14 +436,11 @@ export const AdminDeliverySettings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Juice Delivery Fee (pence)
+                  Juice Delivery Fee
                 </label>
-                <input
-                  type="number"
-                  value={areaForm.feePence}
-                  onChange={(e) => setAreaForm({ ...areaForm, feePence: Number(e.target.value) || 0 })}
-                  className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
-                />
+                <p className="w-full text-xs rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                  {formatPence(DEFAULT_JUICE_SHIPPING_PENCE)} (fixed)
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
@@ -589,7 +611,7 @@ export const AdminDeliverySettings: React.FC = () => {
               <tr>
                 <th className="py-3 px-5">Outward Code</th>
                 <th className="py-3 px-5">Area Name</th>
-                <th className="py-3 px-5">Juice Delivery Fee</th>
+                <th className="py-3 px-5">Juice Delivery Fee (fixed)</th>
                 <th className="py-3 px-5">Min Order</th>
                 <th className="py-3 px-5">Status</th>
                 <th className="py-3 px-5 text-right">Action</th>
@@ -600,7 +622,7 @@ export const AdminDeliverySettings: React.FC = () => {
                 <tr key={area.id} className="hover:bg-stone-50">
                   <td className="py-3 px-5 font-bold text-[#7e2b44]">{area.outwardCode}</td>
                   <td className="py-3 px-5 font-medium">{area.areaName}</td>
-                  <td className="py-3 px-5">{formatPence(area.feePence)}</td>
+                  <td className="py-3 px-5">{formatPence(DEFAULT_JUICE_SHIPPING_PENCE)}</td>
                   <td className="py-3 px-5">{formatPence(area.minimumOrderPence)}</td>
                   <td className="py-3 px-5">
                     <Badge variant={area.isActive ? 'green' : 'neutral'} size="sm">
@@ -760,40 +782,29 @@ export const AdminDeliverySettings: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Free Delivery Threshold (pence)
+                  Newcastle Delivery Progress Target (pence)
                 </label>
                 <input
                   type="number"
                   value={settingsForm?.freeDeliveryThresholdPence ?? settings.freeDeliveryThresholdPence}
-                  onChange={(e) =>
-                    setSettingsForm((prev) => ({
-                      ...prev!,
-                      freeDeliveryThresholdPence: Number(e.target.value) || 0,
-                    }))
-                  }
+                  onChange={(e) => updateSettingsForm({
+                    freeDeliveryThresholdPence: Number(e.target.value) || 0,
+                  })}
                   className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                  Snack Delivery Fee (pence)
+                  Snack Delivery Fee
                 </label>
-                <input
-                  type="number"
-                  value={settingsForm?.snackFlatFeePence ?? settings.snackFlatFeePence}
-                  onChange={(e) =>
-                    setSettingsForm((prev) => ({
-                      ...prev!,
-                      snackFlatFeePence: Number(e.target.value) || 0,
-                    }))
-                  }
-                  className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
-                />
+                <p className="w-full text-xs rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                  {formatPence(DEFAULT_SNACK_SHIPPING_PENCE)} (fixed)
+                </p>
               </div>
             </div>
             <p className="text-[11px] text-stone-500 leading-relaxed">
-              The snack fee applies to snack-only orders. Any order containing fresh juices is
-              charged the juice delivery fee set on each area below.
+              Snack-only orders are charged {formatPence(DEFAULT_SNACK_SHIPPING_PENCE)}. Any order
+              containing fresh juice is charged {formatPence(DEFAULT_JUICE_SHIPPING_PENCE)}.
             </p>
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block">
@@ -803,12 +814,7 @@ export const AdminDeliverySettings: React.FC = () => {
                 <input
                   type="checkbox"
                   checked={settingsForm?.collectionEnabled ?? settings.collectionEnabled}
-                  onChange={(e) =>
-                    setSettingsForm((prev) => ({
-                      ...prev!,
-                      collectionEnabled: e.target.checked,
-                    }))
-                  }
+                  onChange={(e) => updateSettingsForm({ collectionEnabled: e.target.checked })}
                   className="w-3 h-3 rounded border-stone-300 text-[#7e2b44] focus:ring-[#7e2b44]"
                 />
                 {settingsForm?.collectionEnabled ?? settings.collectionEnabled ? 'Enabled' : 'Disabled'}
@@ -820,12 +826,7 @@ export const AdminDeliverySettings: React.FC = () => {
               </label>
                 <input
                   value={settingsForm?.collectionDetails ?? settings.collectionDetails ?? ''}
-                  onChange={(e) =>
-                    setSettingsForm((prev) => ({
-                      ...prev!,
-                      collectionDetails: e.target.value || null,
-                    }))
-                  }
+                  onChange={(e) => updateSettingsForm({ collectionDetails: e.target.value || null })}
                   className="w-full text-xs rounded-lg border border-stone-200 px-3 py-2 focus:ring-1 focus-ring-[#7e2b44] outline-none"
                   placeholder="e.g. Click & collect at our shop"
                 />

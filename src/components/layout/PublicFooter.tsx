@@ -55,7 +55,7 @@ export const PublicFooter: React.FC = () => {
             </span>
             <h4 className="font-serif text-lg font-semibold text-white">Newcastle upon Tyne</h4>
             <p className="text-xs text-stone-300 max-w-xs leading-relaxed">
-              Delivered fresh across Newcastle postcodes (NE1–NE10) every Thursday. Collection points also available.
+              Delivered fresh across Newcastle postcodes (NE1–NE10). Collection points also available.
             </p>
           </div>
         </div>
@@ -99,12 +99,12 @@ export const PublicFooter: React.FC = () => {
             <ul className="space-y-2 text-xs text-stone-300">
               <li>
                 <Link to="/delivery" className="hover:text-gold-200 transition-colors">
-                  Delivery Schedule & Cut-offs
+                  Delivery Information
                 </Link>
               </li>
               <li>
                 <Link to="/delivery#postcodes" className="hover:text-gold-200 transition-colors">
-                  Eligible Newcastle Postcodes
+                  Delivery Coverage
                 </Link>
               </li>
               <li>

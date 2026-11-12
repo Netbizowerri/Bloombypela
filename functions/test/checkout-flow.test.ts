@@ -248,7 +248,8 @@ describe('server-authoritative pricing', () => {
     expect(quote.lines[0].unitPricePence).toBe(350);
     expect(quote.lines[0].lineTotalPence).toBe(700);
     expect(quote.subtotalPence).toBe(700);
-    expect(quote.totalPence).toBe(950); // 700 + 250 delivery
+    expect(quote.deliveryFeePence).toBe(399);
+    expect(quote.totalPence).toBe(1099); // 700 + fixed £3.99 snack delivery
   });
 });
 
@@ -677,7 +678,7 @@ describe('reservation record', () => {
     const before = DateTime.utc();
     const reservation = await reserve(quote);
 
-    expect(reservation.totalPence).toBe(950);
+    expect(reservation.totalPence).toBe(1099);
     expect(reservation.items[0].unitPricePence).toBe(350);
     expect(reservation.contact.emailLower).toBe('ada@example.com');
     expect(reservation.status).toBe('pending');

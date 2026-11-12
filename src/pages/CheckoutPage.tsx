@@ -1,15 +1,18 @@
 /**
- * Checkout page – full checkout UI up to (but not including) Stripe.
+ * Checkout page â€“ full checkout UI up to (but not including) Stripe.
  *
  * Flow:
  *  1. Contact details (guest email/phone, or signed-in prefill)
  *  2. Fulfilment choice (delivery or collection if enabled)
- *  3. Address + UK postcode validation via checkPostcode callable
- *  4. Delivery date picker (juices only) via getAvailableDates callable
- *  5. Order notes, promo code, notices, terms consent
- *  6. Order summary with server-computed quote via quoteCart callable; while
+ *  3. Delivery address
+ *  4. Order notes, promo code, notices, terms consent
+ *  5. Order summary with server-computed quote via quoteCart callable; while
  *     that callable is unavailable (Spark plan) a client-side estimate shows
- *     the type-based delivery charge and the free-delivery gap.
+ *     the type-based delivery charge and the delivery progress target.
+ *
+ * There is no postcode eligibility check and no delivery-date picker: juices
+ * are sold as they are ordered. The postcode is still required so the server
+ * can look up the delivery area when it prices the order.
  *
  * All pricing is computed server-side by quoteCart. Client-supplied prices
  * are ignored. Paying calls createCheckoutSession, which re-prices the basket
@@ -20,7 +23,6 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Clock,
   MapPin,
   Mail,
   Phone,
@@ -43,11 +45,10 @@ import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageLoader } from '../components/ui/PageLoader';
 import { deliveryApi } from '../lib/delivery';
-import { useDeliveryAreas, usePublicSettings } from '../features/delivery';
+import { usePublicSettings } from '../features/delivery';
 import {
-  DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+  DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
   estimateShipping,
-  lowestActiveAreaFeePence,
 } from '../lib/shipping';
 import { checkoutApi } from '../lib/checkout';
 import type { CartItem } from '../types/cart';
@@ -64,7 +65,6 @@ type CheckoutForm = {
   addressLine2: string;
   addressCity: string;
   addressPostcode: string;
-  deliveryDate: string | null;
   orderNotes: string;
   promoCode: string;
   terms: boolean;
@@ -79,7 +79,6 @@ const EMPTY_FORM: CheckoutForm = {
   addressLine2: '',
   addressCity: '',
   addressPostcode: '',
-  deliveryDate: null,
   orderNotes: '',
   promoCode: '',
   terms: false,
@@ -109,12 +108,7 @@ export const CheckoutPage: React.FC = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
   const { data: publicSettings } = usePublicSettings();
-  const { data: deliveryAreas } = useDeliveryAreas();
   const navigate = useNavigate();
-
-  // Shipping is charged by item type: snack-only carts use the snack fee,
-  // anything containing fresh juice uses the area's juice fee.
-  const snackDeliveryFeePence = publicSettings?.snackFlatFeePence ?? 399;
 
   const [form, setForm] = useState<CheckoutForm>(() => ({
     ...EMPTY_FORM,
@@ -124,25 +118,11 @@ export const CheckoutPage: React.FC = () => {
   }));
 
   const [step, setStep] = useState(1);
-  const [postcodeChecked, setPostcodeChecked] = useState<{ served: boolean; area: any } | null>(null);
-  const [postcodeError, setPostcodeError] = useState<string | null>(null);
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [dateError, setDateError] = useState<string | null>(null);
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [loading, setLoading] = useState<Set<string>>(new Set());
-
-  // The juice fee is the destination area's fee; before a postcode is checked
-  // the cheapest active area is used, so the summary still shows a charge.
-  const juiceDeliveryFeePence = useMemo(() => {
-    const areaFee =
-      postcodeChecked?.served && postcodeChecked.area
-        ? Number(postcodeChecked.area.feePence)
-        : Number.NaN;
-    return Number.isFinite(areaFee) ? areaFee : lowestActiveAreaFeePence(deliveryAreas);
-  }, [postcodeChecked, deliveryAreas]);
 
   /**
    * Indicative shipping, shown before (and without) the server quote. The
@@ -155,18 +135,14 @@ export const CheckoutPage: React.FC = () => {
         subtotalPence: cartSubtotal,
         hasSnacks,
         hasJuices,
-        snackFeePence: snackDeliveryFeePence,
-        juiceFeePence: juiceDeliveryFeePence,
-        freeDeliveryThresholdPence:
-          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+        deliveryProgressTargetPence:
+          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
         fulfilment: form.fulfilment,
       }),
     [
       cartSubtotal,
       hasSnacks,
       hasJuices,
-      snackDeliveryFeePence,
-      juiceDeliveryFeePence,
       publicSettings,
       form.fulfilment,
     ],
@@ -204,7 +180,6 @@ export const CheckoutPage: React.FC = () => {
         })),
         postcode: form.fulfilment === 'delivery' ? form.addressPostcode : '',
         fulfilment: form.fulfilment,
-        deliveryDate: form.fulfilment === 'delivery' ? form.deliveryDate ?? undefined : null,
         promoCode: form.promoCode || undefined,
       });
       setQuote(response.data);
@@ -219,60 +194,11 @@ export const CheckoutPage: React.FC = () => {
         return next;
       });
     }
-  }, [items, form.fulfilment, form.addressPostcode, form.deliveryDate, form.promoCode]);
+  }, [items, form.fulfilment, form.addressPostcode, form.promoCode]);
 
   useEffect(() => {
     computeQuote();
   }, [computeQuote]);
-
-  // Check postcode
-  const handleCheckPostcode = useCallback(async () => {
-    const pc = form.addressPostcode.trim();
-    if (!pc) return;
-    setLoading((prev) => new Set([...prev, 'postcode']));
-    try {
-      const response = await deliveryApi.checkPostcode(pc);
-      setPostcodeChecked(response.data);
-      setPostcodeError(null);
-    } catch (err) {
-      setPostcodeChecked(null);
-      setPostcodeError(err instanceof Error ? err.message : 'Postcode check failed');
-    } finally {
-      setLoading((prev) => {
-        const next = new Set(prev);
-        next.delete('postcode');
-        return next;
-      });
-    }
-  }, [form.addressPostcode]);
-
-  // Get available dates
-  const handleGetDates = useCallback(async () => {
-    if (!hasJuices) {
-      setAvailableDates([]);
-      setDateError(null);
-      return;
-    }
-    const now = new Date().toISOString();
-    setLoading((prev) => new Set([...prev, 'dates']));
-    try {
-      const response = await deliveryApi.getAvailableDates(now, true);
-      setAvailableDates(response.data.dates);
-      setDateError(null);
-      if (response.data.dates.length === 0) {
-        setDateError('No delivery dates available. Please contact us.');
-      }
-    } catch (err) {
-      setAvailableDates([]);
-      setDateError(err instanceof Error ? err.message : 'Unable to load delivery dates');
-    } finally {
-      setLoading((prev) => {
-        const next = new Set(prev);
-        next.delete('dates');
-        return next;
-      });
-    }
-  }, [hasJuices, form.deliveryDate]);
 
   // Form field handlers
   const setField = (key: keyof CheckoutForm, value: string | boolean | null) => {
@@ -281,13 +207,6 @@ export const CheckoutPage: React.FC = () => {
 
   const handleToggleFulfilment = (value: Fulfilment) => {
     setField('fulfilment', value);
-    if (value === 'collection') {
-      setPostcodeChecked(null);
-      setPostcodeError(null);
-      setAvailableDates([]);
-      setDateError(null);
-      setField('deliveryDate', null);
-    }
   };
 
   const handleToggleTerms = () => {
@@ -300,17 +219,15 @@ export const CheckoutPage: React.FC = () => {
     if (!form.contactEmail || !form.contactPhone) return false;
     if (form.fulfilment === 'delivery') {
       if (!form.addressLine1 || !form.addressCity || !form.addressPostcode) return false;
-      if (!postcodeChecked?.served) return false;
-      if (hasJuices && (!form.deliveryDate || availableDates.length === 0)) return false;
     }
     if (!form.terms) return false;
     return true;
-  }, [items.length, form.contactName, form.contactEmail, form.contactPhone, form.fulfilment, form.addressLine1, form.addressCity, form.addressPostcode, postcodeChecked, hasJuices, form.deliveryDate, availableDates.length, form.terms]);
+  }, [items.length, form.contactName, form.contactEmail, form.contactPhone, form.fulfilment, form.addressLine1, form.addressCity, form.addressPostcode, form.terms]);
 
   const isQuoteStale = useMemo(() => {
     if (!quote) return true;
     return false;
-  }, [quote, items, form.fulfilment, form.addressPostcode, form.deliveryDate, form.promoCode]);
+  }, [quote, items, form.fulfilment, form.addressPostcode, form.promoCode]);
 
   const handlePay = useCallback(async () => {
     if (paying) return;
@@ -344,7 +261,6 @@ export const CheckoutPage: React.FC = () => {
                 postcode: form.addressPostcode.trim(),
               }
             : null,
-        deliveryDate: form.fulfilment === 'delivery' ? form.deliveryDate : null,
         notes: form.orderNotes.trim() || undefined,
         promoCode: form.promoCode.trim() || undefined,
       });
@@ -556,86 +472,10 @@ export const CheckoutPage: React.FC = () => {
                     label="UK postcode"
                     value={form.addressPostcode}
                     onChange={(e) => setField('addressPostcode', e.target.value.toUpperCase())}
-                    error={postcodeError ?? (!form.addressPostcode ? 'Postcode is required' : undefined)}
-                    helperText={
-                      postcodeChecked?.served
-                        ? `Serves ${postcodeChecked.area.areaName} — ${formatPence(
-                            hasJuices
-                              ? postcodeChecked.area.feePence
-                              : snackDeliveryFeePence,
-                          )} delivery`
-                        : undefined
-                    }
+                    error={!form.addressPostcode ? 'Postcode is required' : undefined}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCheckPostcode}
-                    disabled={isStepLoading('postcode') || !form.addressPostcode}
-                    leftIcon={<RefreshCw className="h-4 w-4" />}
-                  >
-                    {isStepLoading('postcode') ? 'Checking…' : 'Check postcode'}
-                  </Button>
-                  {postcodeError && (
-                    <p className="mt-1 text-xs text-red-600">{postcodeError}</p>
-                  )}
-                  {postcodeChecked && !postcodeChecked.served && (
-                    <p className="mt-1 text-xs text-red-600">
-                      Postcode not in our delivery area.
-                    </p>
-                  )}
                 </div>
               </section>
-
-              {/* Section 4: Delivery date (juices only) */}
-              {hasJuices && (
-                <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
-                  <h2 className="font-serif text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-[#7e2c44]" />
-                    Choose delivery date
-                  </h2>
-                  <p className="text-xs text-stone-500 mb-4">
-                    Cold-pressed juices are delivered fresh on Thursdays. Select an available date.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {availableDates.length > 0 ? (
-                      availableDates.map((date) => {
-                        const isSelected = form.deliveryDate === date;
-                        const d = new Date(date);
-                        return (
-                          <button
-                            key={date}
-                            type="button"
-                            onClick={() => {
-                              setField('deliveryDate', date);
-                              setDateError(null);
-                            }}
-                            className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all text-xs ${
-                              isSelected
-                                ? 'border-[#155d2c] bg-[#f0f7f2] text-[#155d2c]'
-                                : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
-                            }`}
-                          >
-                            <span className="font-medium">{d.getDate()}</span>
-                            <span className="text-stone-500">{d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div className="col-span-3 text-center py-8 text-stone-500 text-xs">
-                        No dates available
-                      </div>
-                    )}
-                  </div>
-                  {dateError && (
-                    <p className="mt-2 text-xs text-red-600">{dateError}</p>
-                  )}
-                  <p className="mt-3 text-[10px] text-stone-500">
-                    Orders for juice delivery must be placed by Monday 12:00 PM London time.
-                  </p>
-                </section>
-              )}
             </>
           )}
 
@@ -690,7 +530,7 @@ export const CheckoutPage: React.FC = () => {
                 <p>
                   Our juices are raw, cold-pressed and unpasteurised. Please ensure someone is available
                   at the delivery address to receive and refrigerate your bottles immediately (store below
-                  4°C). Consume within 5 days of delivery.
+                  4Â°C). Consume within 5 days of delivery.
                 </p>
                 <p className="mt-2">
                   Our kitchen handles the 14 major UK allergens. While we take care to avoid cross-contact,
@@ -736,7 +576,7 @@ export const CheckoutPage: React.FC = () => {
                 Order summary
               </h2>
               <p className="text-[10px] text-stone-500 mt-1 uppercase tracking-wider font-semibold">
-                Indicative totals — final price confirmed at payment
+                Indicative totals â€” final price confirmed at payment
               </p>
             </div>
             <div className="p-6 space-y-3">
@@ -745,7 +585,7 @@ export const CheckoutPage: React.FC = () => {
                   <span className="flex flex-col">
                     <span className="font-medium">{line.name}</span>
                     <span className="text-[10px] text-stone-500">
-                      {line.quantity} × {formatPence(line.unitPricePence)}
+                      {line.quantity} Ã— {formatPence(line.unitPricePence)}
                     </span>
                   </span>
                   <span className="font-medium">{formatPence(line.lineTotalPence)}</span>
@@ -764,10 +604,10 @@ export const CheckoutPage: React.FC = () => {
               {!quote && (
                 <p className="text-[10px] text-stone-500">
                   {form.fulfilment === 'collection'
-                    ? 'Collection — no delivery charge.'
-                    : shipping.amountToFreePence > 0
-                      ? `Add ${formatPence(shipping.amountToFreePence)} more for free Newcastle delivery.`
-                      : 'Free Newcastle delivery applied.'}
+                    ? 'Collection â€” no delivery charge.'
+                    : shipping.amountToDeliveryPence > 0
+                      ? `Add ${formatPence(shipping.amountToDeliveryPence)} more for Newcastle Delivery!`
+                      : 'Newcastle delivery charge applies.'}
                 </p>
               )}
               {quote?.discountPence && quote?.discountPence > 0 && quote && (
@@ -803,11 +643,11 @@ export const CheckoutPage: React.FC = () => {
                 isLoading={paying}
               >
                 {paying
-                  ? 'Redirecting to secure payment…'
+                  ? 'Redirecting to secure paymentâ€¦'
                   : !canProceed
                     ? 'Complete details to continue'
                     : isQuoteStale
-                      ? 'Updating quote…'
+                      ? 'Updating quoteâ€¦'
                       : 'Pay securely'}
               </Button>
               {payError && (

@@ -17,12 +17,10 @@ import { formatPence } from '../../lib/utils';
 import { cld } from '../../lib/cld';
 import { Button } from '../ui/Button';
 import { Link } from 'react-router-dom';
-import { useDeliveryAreas, usePublicSettings } from '../../features/delivery';
+import { usePublicSettings } from '../../features/delivery';
 import {
-  DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
-  DEFAULT_SNACK_SHIPPING_PENCE,
+  DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
   estimateShipping,
-  lowestActiveAreaFeePence,
 } from '../../lib/shipping';
 
 export const CartDrawer: React.FC = () => {
@@ -42,10 +40,8 @@ export const CartDrawer: React.FC = () => {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Free delivery is threshold-based; the threshold itself comes from the live
-  // settings so a change in the admin portal is reflected in this banner.
+  // The live target controls progress copy; delivery charges remain payable.
   const { data: publicSettings } = usePublicSettings();
-  const { data: deliveryAreas } = useDeliveryAreas();
 
   const shipping = useMemo(
     () =>
@@ -53,21 +49,19 @@ export const CartDrawer: React.FC = () => {
         subtotalPence,
         hasSnacks,
         hasJuices,
-        snackFeePence: publicSettings?.snackFlatFeePence ?? DEFAULT_SNACK_SHIPPING_PENCE,
-        juiceFeePence: lowestActiveAreaFeePence(deliveryAreas),
-        freeDeliveryThresholdPence:
-          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+        deliveryProgressTargetPence:
+          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE,
       }),
-    [subtotalPence, hasSnacks, hasJuices, publicSettings, deliveryAreas],
+    [subtotalPence, hasSnacks, hasJuices, publicSettings],
   );
 
-  const freeDeliveryThresholdPence =
-    publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE;
-  const progressToFree = Math.min(
+  const deliveryProgressTargetPence =
+    publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_DELIVERY_PROGRESS_TARGET_PENCE;
+  const progressToDelivery = Math.min(
     100,
-    Math.round((subtotalPence / freeDeliveryThresholdPence) * 100),
+    Math.round((subtotalPence / deliveryProgressTargetPence) * 100),
   );
-  const amountToFree = shipping.amountToFreePence;
+  const amountToDelivery = shipping.amountToDeliveryPence;
 
   // Close on Escape key press
   useEffect(() => {
@@ -163,23 +157,23 @@ export const CartDrawer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Free delivery progress bar (only meaningful with items in the basket) */}
+              {/* Delivery progress target (only meaningful with items in the basket) */}
               {items.length > 0 && (
                 <div className="bg-[#faf2dc] px-4 sm:px-6 py-2.5 border-b border-[#f5e3b5] text-xs shrink-0">
-                  {amountToFree > 0 ? (
+                  {amountToDelivery > 0 ? (
                     <p className="text-[#8b5b1a] text-center sm:text-left">
-                      Add <strong className="font-bold text-[#71481b]">{formatPence(amountToFree)}</strong> more for{' '}
-                      <span className="font-semibold underline decoration-[#deb252]">Free Newcastle Delivery</span>!
+                      Add <strong className="font-bold text-[#71481b]">{formatPence(amountToDelivery)}</strong> more for{' '}
+                      <span className="font-semibold underline decoration-[#deb252]">Newcastle Delivery</span>!
                     </p>
                   ) : (
                     <p className="text-[#155d2c] font-bold flex items-center justify-center sm:justify-start gap-1.5">
-                      <Sparkles className="h-4 w-4 text-[#c9932b]" /> You've unlocked Free Newcastle Delivery!
+                      <Sparkles className="h-4 w-4 text-[#c9932b]" /> Newcastle delivery charge applies.
                     </p>
                   )}
                   <div className="mt-1.5 h-2 w-full bg-stone-200/90 rounded-full overflow-hidden shadow-inner">
                     <div
                       className="h-full bg-gradient-to-r from-[#deb252] to-[#c9932b] transition-all duration-300 rounded-full"
-                      style={{ width: `${progressToFree}%` }}
+                      style={{ width: `${progressToDelivery}%` }}
                     />
                   </div>
                 </div>
@@ -398,4 +392,3 @@ export const CartDrawer: React.FC = () => {
     </AnimatePresence>
   );
 };
-

@@ -50,7 +50,7 @@ export const MobileStickyFooter: React.FC = () => {
     },
     {
       title: 'Delivery Coverage',
-      subtitle: 'Newcastle postcodes NE1–NE10 schedule',
+      subtitle: 'Newcastle delivery areas',
       to: '/delivery',
       icon: Sparkles,
       color: 'bg-stone-100 text-stone-800 border-stone-200',

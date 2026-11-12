@@ -65,19 +65,19 @@ describe('isAreaServed', () => {
 });
 
 describe('computeDeliveryFee', () => {
-  it('returns 0 when subtotal meets free delivery threshold', () => {
-    expect(computeDeliveryFee(3000, areas[0], settings, true, false)).toBe(0);
-    expect(computeDeliveryFee(5000, areas[0], settings, false, true)).toBe(0);
+  it('continues charging delivery at and above the progress target', () => {
+    expect(computeDeliveryFee(3000, areas[0], settings, true, false)).toBe(599);
+    expect(computeDeliveryFee(5000, areas[0], settings, false, true)).toBe(399);
   });
 
-  it('returns area fee for juice carts below threshold', () => {
-    expect(computeDeliveryFee(1000, areas[0], settings, true, false)).toBe(350);
-    expect(computeDeliveryFee(1000, areas[2], settings, true, false)).toBe(400);
+  it('uses the fixed juice fee regardless of the configured area fee', () => {
+    expect(computeDeliveryFee(1000, areas[0], settings, true, false)).toBe(599);
+    expect(computeDeliveryFee(1000, areas[2], settings, true, false)).toBe(599);
   });
 
-  it('returns snack flat fee for snack-only carts below threshold', () => {
-    expect(computeDeliveryFee(1000, areas[0], settings, false, true)).toBe(250);
-    expect(computeDeliveryFee(2000, areas[0], settings, false, true)).toBe(250);
+  it('uses the fixed snack fee regardless of the configured settings fee', () => {
+    expect(computeDeliveryFee(1000, areas[0], settings, false, true)).toBe(399);
+    expect(computeDeliveryFee(2000, areas[0], settings, false, true)).toBe(399);
   });
 
   it('throws for missing or inactive area', () => {

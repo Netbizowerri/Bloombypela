@@ -116,7 +116,7 @@ export const ProductDetailPage: React.FC = () => {
     openCart();
     success(
       'Added to basket',
-      `${quantity}× ${product.name} (${activeVariant.name}) added to your basket.`
+      `${quantity}Ã— ${product.name} (${activeVariant.name}) added to your basket.`
     );
   };
 
@@ -178,7 +178,7 @@ export const ProductDetailPage: React.FC = () => {
               <div className="relative aspect-4/3 sm:aspect-square rounded-2xl sm:rounded-3xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs group">
                 <img
                   src={feature ? cld(feature.url, 900) : ''}
-                  alt={featureVariant ? `${product.name} — ${featureVariant.name}` : product.name}
+                  alt={featureVariant ? `${product.name} â€” ${featureVariant.name}` : product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {/* Badges on main image */}
@@ -258,7 +258,7 @@ export const ProductDetailPage: React.FC = () => {
               <div>
                 <h4 className="text-xs font-bold text-stone-900">Newcastle Delivery</h4>
                 <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
-                  Fresh drops every Thursday. Free pickup also available.
+                  Fresh drops across Newcastle. Free pickup also available.
                 </p>
               </div>
             </div>
@@ -276,7 +276,7 @@ export const ProductDetailPage: React.FC = () => {
               >
                 {product.category}
               </Link>
-              <span className="text-stone-300">•</span>
+              <span className="text-stone-300">â€¢</span>
               <span className="text-xs text-stone-500 font-medium">
                 {product.type === 'snack' ? 'Pantry Treat' : 'Fresh Beverage'}
               </span>
@@ -392,7 +392,7 @@ export const ProductDetailPage: React.FC = () => {
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>
-                    Add to Basket • {formatPence(activeVariant.pricePence * quantity)}
+                    Add to Basket â€¢ {formatPence(activeVariant.pricePence * quantity)}
                   </span>
                 </button>
               </div>
@@ -405,7 +405,7 @@ export const ProductDetailPage: React.FC = () => {
                     Fresh Weekly Newcastle Batch
                   </span>
                   <p className="text-[11px] text-stone-600 mt-0.5 leading-relaxed">
-                    Cut-off for Thursday delivery & weekend collection is Monday at 12:00 PM.
+                    Juices and snacks are prepared fresh as they are ordered.
                   </p>
                 </div>
               </div>
@@ -483,7 +483,7 @@ export const ProductDetailPage: React.FC = () => {
               to={categoryPath}
               className="text-xs sm:text-sm font-semibold text-[#155d2c] hover:underline"
             >
-              View all →
+              View all â†’
             </Link>
           </div>
 
