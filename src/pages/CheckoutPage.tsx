@@ -7,7 +7,9 @@
  *  3. Address + UK postcode validation via checkPostcode callable
  *  4. Delivery date picker (juices only) via getAvailableDates callable
  *  5. Order notes, promo code, notices, terms consent
- *  6. Order summary with server-computed quote via quoteCart callable
+ *  6. Order summary with server-computed quote via quoteCart callable; while
+ *     that callable is unavailable (Spark plan) a client-side estimate shows
+ *     the type-based delivery charge and the free-delivery gap.
  *
  * All pricing is computed server-side by quoteCart. Client-supplied prices
  * are ignored. Paying calls createCheckoutSession, which re-prices the basket
@@ -41,7 +43,12 @@ import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageLoader } from '../components/ui/PageLoader';
 import { deliveryApi } from '../lib/delivery';
-import { usePublicSettings } from '../features/delivery';
+import { useDeliveryAreas, usePublicSettings } from '../features/delivery';
+import {
+  DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+  estimateShipping,
+  lowestActiveAreaFeePence,
+} from '../lib/shipping';
 import { checkoutApi } from '../lib/checkout';
 import type { CartItem } from '../types/cart';
 import type { Product } from '../types/products';
@@ -102,6 +109,7 @@ export const CheckoutPage: React.FC = () => {
   const { user } = useAuth();
   const { success, error: showError } = useToast();
   const { data: publicSettings } = usePublicSettings();
+  const { data: deliveryAreas } = useDeliveryAreas();
   const navigate = useNavigate();
 
   // Shipping is charged by item type: snack-only carts use the snack fee,
@@ -125,6 +133,49 @@ export const CheckoutPage: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [loading, setLoading] = useState<Set<string>>(new Set());
+
+  // The juice fee is the destination area's fee; before a postcode is checked
+  // the cheapest active area is used, so the summary still shows a charge.
+  const juiceDeliveryFeePence = useMemo(() => {
+    const areaFee =
+      postcodeChecked?.served && postcodeChecked.area
+        ? Number(postcodeChecked.area.feePence)
+        : Number.NaN;
+    return Number.isFinite(areaFee) ? areaFee : lowestActiveAreaFeePence(deliveryAreas);
+  }, [postcodeChecked, deliveryAreas]);
+
+  /**
+   * Indicative shipping, shown before (and without) the server quote. The
+   * quote stays authoritative whenever it arrives; the server reprices again
+   * at payment.
+   */
+  const shipping = useMemo(
+    () =>
+      estimateShipping({
+        subtotalPence: cartSubtotal,
+        hasSnacks,
+        hasJuices,
+        snackFeePence: snackDeliveryFeePence,
+        juiceFeePence: juiceDeliveryFeePence,
+        freeDeliveryThresholdPence:
+          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+        fulfilment: form.fulfilment,
+      }),
+    [
+      cartSubtotal,
+      hasSnacks,
+      hasJuices,
+      snackDeliveryFeePence,
+      juiceDeliveryFeePence,
+      publicSettings,
+      form.fulfilment,
+    ],
+  );
+
+  const displayDeliveryFeePence = quote ? quote.deliveryFeePence : shipping.deliveryFeePence;
+  const displayTotalPence = quote
+    ? quote.totalPence
+    : cartSubtotal + shipping.deliveryFeePence;
 
   const isStepLoading = (key: string) => loading.has(key);
 
@@ -705,13 +756,20 @@ export const CheckoutPage: React.FC = () => {
                 <span>{formatPence(quote?.subtotalPence ?? cartSubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm text-stone-600">
-                <span>Delivery</span>
-                <span>
-                  {quote?.deliveryFeePence === 0
-                    ? 'FREE'
-                    : formatPence(quote?.deliveryFeePence ?? 0)}
+                <span>{form.fulfilment === 'collection' ? 'Collection' : 'Delivery'}</span>
+                <span className={displayDeliveryFeePence === 0 ? 'font-semibold text-[#155d2c]' : ''}>
+                  {displayDeliveryFeePence === 0 ? 'FREE' : formatPence(displayDeliveryFeePence)}
                 </span>
               </div>
+              {!quote && (
+                <p className="text-[10px] text-stone-500">
+                  {form.fulfilment === 'collection'
+                    ? 'Collection — no delivery charge.'
+                    : shipping.amountToFreePence > 0
+                      ? `Add ${formatPence(shipping.amountToFreePence)} more for free Newcastle delivery.`
+                      : 'Free Newcastle delivery applied.'}
+                </p>
+              )}
               {quote?.discountPence && quote?.discountPence > 0 && quote && (
                 <div className="flex justify-between text-sm text-[#155d2c] font-medium">
                   <span>Discount ({quote.promoCode})</span>
@@ -729,7 +787,7 @@ export const CheckoutPage: React.FC = () => {
               )}
               <div className="mt-4 border-t border-stone-200 pt-3 flex justify-between text-base font-bold text-stone-900">
                 <span>Total</span>
-                <span>{formatPence(quote?.totalPence ?? cartSubtotal)}</span>
+                <span>{formatPence(displayTotalPence)}</span>
               </div>
             </div>
             <div className="p-6 border-t border-stone-100">

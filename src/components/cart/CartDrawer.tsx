@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -17,6 +17,13 @@ import { formatPence } from '../../lib/utils';
 import { cld } from '../../lib/cld';
 import { Button } from '../ui/Button';
 import { Link } from 'react-router-dom';
+import { useDeliveryAreas, usePublicSettings } from '../../features/delivery';
+import {
+  DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+  DEFAULT_SNACK_SHIPPING_PENCE,
+  estimateShipping,
+  lowestActiveAreaFeePence,
+} from '../../lib/shipping';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -34,9 +41,33 @@ export const CartDrawer: React.FC = () => {
   } = useCart();
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const FREE_DELIVERY_THRESHOLD = 3000; // £30.00
-  const progressToFree = Math.min(100, Math.round((subtotalPence / FREE_DELIVERY_THRESHOLD) * 100));
-  const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD - subtotalPence);
+
+  // Free delivery is threshold-based; the threshold itself comes from the live
+  // settings so a change in the admin portal is reflected in this banner.
+  const { data: publicSettings } = usePublicSettings();
+  const { data: deliveryAreas } = useDeliveryAreas();
+
+  const shipping = useMemo(
+    () =>
+      estimateShipping({
+        subtotalPence,
+        hasSnacks,
+        hasJuices,
+        snackFeePence: publicSettings?.snackFlatFeePence ?? DEFAULT_SNACK_SHIPPING_PENCE,
+        juiceFeePence: lowestActiveAreaFeePence(deliveryAreas),
+        freeDeliveryThresholdPence:
+          publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE,
+      }),
+    [subtotalPence, hasSnacks, hasJuices, publicSettings, deliveryAreas],
+  );
+
+  const freeDeliveryThresholdPence =
+    publicSettings?.freeDeliveryThresholdPence ?? DEFAULT_FREE_DELIVERY_THRESHOLD_PENCE;
+  const progressToFree = Math.min(
+    100,
+    Math.round((subtotalPence / freeDeliveryThresholdPence) * 100),
+  );
+  const amountToFree = shipping.amountToFreePence;
 
   // Close on Escape key press
   useEffect(() => {
@@ -132,25 +163,27 @@ export const CartDrawer: React.FC = () => {
                 </div>
               </div>
 
-              {/* Free delivery progress bar */}
-              <div className="bg-[#faf2dc] px-4 sm:px-6 py-2.5 border-b border-[#f5e3b5] text-xs shrink-0">
-                {amountToFree > 0 ? (
-                  <p className="text-[#8b5b1a] text-center sm:text-left">
-                    Add <strong className="font-bold text-[#71481b]">{formatPence(amountToFree)}</strong> more for{' '}
-                    <span className="font-semibold underline decoration-[#deb252]">Free Newcastle Delivery</span>!
-                  </p>
-                ) : (
-                  <p className="text-[#155d2c] font-bold flex items-center justify-center sm:justify-start gap-1.5">
-                    <Sparkles className="h-4 w-4 text-[#c9932b]" /> You've unlocked Free Newcastle Delivery!
-                  </p>
-                )}
-                <div className="mt-1.5 h-2 w-full bg-stone-200/90 rounded-full overflow-hidden shadow-inner">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#deb252] to-[#c9932b] transition-all duration-300 rounded-full"
-                    style={{ width: `${progressToFree}%` }}
-                  />
+              {/* Free delivery progress bar (only meaningful with items in the basket) */}
+              {items.length > 0 && (
+                <div className="bg-[#faf2dc] px-4 sm:px-6 py-2.5 border-b border-[#f5e3b5] text-xs shrink-0">
+                  {amountToFree > 0 ? (
+                    <p className="text-[#8b5b1a] text-center sm:text-left">
+                      Add <strong className="font-bold text-[#71481b]">{formatPence(amountToFree)}</strong> more for{' '}
+                      <span className="font-semibold underline decoration-[#deb252]">Free Newcastle Delivery</span>!
+                    </p>
+                  ) : (
+                    <p className="text-[#155d2c] font-bold flex items-center justify-center sm:justify-start gap-1.5">
+                      <Sparkles className="h-4 w-4 text-[#c9932b]" /> You've unlocked Free Newcastle Delivery!
+                    </p>
+                  )}
+                  <div className="mt-1.5 h-2 w-full bg-stone-200/90 rounded-full overflow-hidden shadow-inner">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#deb252] to-[#c9932b] transition-all duration-300 rounded-full"
+                      style={{ width: `${progressToFree}%` }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Items scroll indicator hint if 3+ items */}
               {items.length >= 3 && (
@@ -309,10 +342,27 @@ export const CartDrawer: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs uppercase tracking-wider text-stone-500 font-semibold block">Subtotal</span>
-                      <span className="text-[11px] text-stone-400">Excl. Newcastle delivery</span>
+                      <span className="text-[11px] text-stone-400">Excl. delivery</span>
                     </div>
                     <span className="font-serif text-2xl font-bold text-stone-900">
                       {formatPence(subtotalPence)}
+                    </span>
+                  </div>
+
+                  {/* Delivery is now priced by cart type: snacks £3.99, juices £5.99. */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-stone-600 font-medium">
+                      Delivery
+                      {shipping.basis === 'juice' ? ' (fresh juice)' : shipping.basis === 'snack' ? ' (snacks)' : ''}
+                    </span>
+                    <span
+                      className={
+                        shipping.isFree
+                          ? 'font-bold text-[#155d2c]'
+                          : 'font-bold text-stone-900'
+                      }
+                    >
+                      {shipping.isFree ? 'FREE' : formatPence(shipping.deliveryFeePence)}
                     </span>
                   </div>
 
