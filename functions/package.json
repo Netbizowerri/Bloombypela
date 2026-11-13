@@ -5,7 +5,7 @@
   "description": "Cloud Functions (2nd gen) for Bloom by Pela",
   "main": "lib/index.js",
   "engines": {
-    "node": "20"
+    "node": "26.x"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -33,6 +33,7 @@
     "vitest": "^5.0.5"
   }
 }
+
 
 
 
