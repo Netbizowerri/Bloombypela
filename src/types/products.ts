@@ -47,6 +47,12 @@ export interface Product {
   seoDescription?: string;
   isPopular?: boolean;
   /**
+   * Food-safety flag. Missing on documents written before the field existed,
+   * which is treated as "not reviewed": the admin portal blocks activation and
+   * firestore.rules rejects an active product without it.
+   */
+  allergenReviewed?: boolean;
+  /**
    * Firestore `createdAt` as epoch milliseconds. Used to surface the newest
    * products on the homepage; absent on documents written before this field
    * was read, which fall back to catalogue order.

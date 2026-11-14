@@ -1,4 +1,4 @@
-import type { Product } from '../types/products';
+import type { Product } from '../types/products.js';
 
 /**
  * Seasonal-window helpers for catalogue products.

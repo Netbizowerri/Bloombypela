@@ -14,6 +14,8 @@ export interface OrderLine {
   variantName: string;
   quantity: number;
   lineTotalPence: number;
+  /** UK allergens declared for this recipe; empty means none declared. */
+  allergens: string[];
 }
 
 export interface OrderContext {
@@ -111,6 +113,13 @@ function lineItemHtml(items: OrderLine[]): string {
               ? ` <span style="color:#6b7280;font-size:12px;">— ${escapeHtml(item.variantName)}</span>`
               : ''
           }
+          <div style="margin-top:4px;font-size:11px;color:#6b7280;">
+            Allergens: ${
+              item.allergens.length > 0
+                ? `<strong style="color:#7e2b44;">${escapeHtml(item.allergens.join(', '))}</strong>`
+                : '<strong style="color:#7e2b44;">None of the 14 major UK allergens declared</strong>'
+            }
+          </div>
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #e5e7e5;text-align:right;font-size:14px;">
           ${item.quantity} × ${money(item.lineTotalPence / item.quantity)}
@@ -134,7 +143,11 @@ function lineItemText(items: OrderLine[]): string {
             : ''
         } @ ${money(item.lineTotalPence / item.quantity)} each = ${money(
           item.lineTotalPence,
-        )}`,
+        )}\n  Allergens: ${
+          item.allergens.length > 0
+            ? item.allergens.join(', ')
+            : 'None of the 14 major UK allergens declared'
+        }`,
     )
     .join('\n');
 }

@@ -2,25 +2,74 @@ import React, { useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useToast } from '../context/ToastContext';
-import { Mail, Phone, MapPin, Send, CheckCircle2 } from 'lucide-react';
+import { postServerApi } from '../lib/serverApi';
+import { CONTACT_EMAIL } from '../lib/site';
+import { Mail, MapPin, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+
+interface ContactResponse {
+  ok: true;
+}
+
+/** Mirrors the server schema in functions/src/contact.ts. */
+const MIN_MESSAGE_LENGTH = 10;
 
 export const ContactPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [subject, setSubject] = useState('General Enquiry');
   const [message, setMessage] = useState('');
+  // Honeypot: hidden from people, tempting for bots. Must stay empty.
+  const [website, setWebsite] = useState('');
   const [isSent, setIsSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { success } = useToast();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const { success, error: toastError } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const messageTooShort = message.trim().length < MIN_MESSAGE_LENGTH;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setTouched(true);
+    setSubmitError(null);
+
+    if (messageTooShort) {
+      setSubmitError(`Please add a little more detail (at least ${MIN_MESSAGE_LENGTH} characters).`);
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await postServerApi<Record<string, unknown>, ContactResponse>('/api/contact', {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        subject,
+        message: message.trim(),
+        website,
+      });
       setIsSent(true);
-      success('Message Sent', 'Thank you. A member of our Newcastle team will be in touch shortly.');
-    }, 600);
+      success('Message sent', 'Thank you. A member of our Newcastle team will be in touch shortly.');
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'We could not send your message.';
+      setSubmitError(reason);
+      toastError('Message not sent', reason);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setIsSent(false);
+    setTouched(false);
+    setSubmitError(null);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setSubject('General Enquiry');
+    setMessage('');
+    setWebsite('');
   };
 
   return (
@@ -48,13 +97,13 @@ export const ContactPage: React.FC = () => {
                 <span>
                   Bloom by Pela Ltd<br />
                   Newcastle upon Tyne, UK<br />
-                  NE1 & NE2 Delivery Zone
+                  NE1 &amp; NE2 Delivery Zone
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="h-4 w-4 text-[#cb932b] shrink-0" />
-                <a href="mailto:hello@bloombypela.com" className="hover:underline text-stone-900">
-                  hello@bloombypela.com
+                <a href={`mailto:${CONTACT_EMAIL}`} className="hover:underline text-stone-900">
+                  {CONTACT_EMAIL}
                 </a>
               </div>
             </div>
@@ -79,18 +128,19 @@ export const ContactPage: React.FC = () => {
               <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
                 Your message has been safely received. We will respond within one business day.
               </p>
-              <Button variant="outline" size="sm" onClick={() => setIsSent(false)}>
+              <Button variant="outline" size="sm" onClick={resetForm}>
                 Send Another Message
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Your Name"
                   placeholder="e.g. Jordan Smith"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
                   required
                 />
                 <Input
@@ -99,15 +149,29 @@ export const ContactPage: React.FC = () => {
                   placeholder="jordan@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
 
+              <Input
+                label="Phone (optional)"
+                type="tel"
+                placeholder="07700 900000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+              />
+
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5">
+                <label
+                  htmlFor="contact-subject"
+                  className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5"
+                >
                   Subject
                 </label>
                 <select
+                  id="contact-subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   className="w-full rounded-md border border-stone-300 bg-white px-3.5 py-2 text-sm text-stone-800 shadow-xs focus:border-[#7e2b44] focus:outline-none focus:ring-1 focus:ring-[#7e2b44]"
@@ -115,24 +179,59 @@ export const ContactPage: React.FC = () => {
                   <option value="General Enquiry">General Enquiry</option>
                   <option value="Weekly Subscription">Weekly Subscription Support</option>
                   <option value="Corporate Catering">Corporate Catering / Office Drops</option>
-                  <option value="Wholesale">Wholesale & Stockist Requests</option>
+                  <option value="Wholesale">Wholesale &amp; Stockist Requests</option>
                   <option value="Allergens">Allergen Clarification</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5">
+                <label
+                  htmlFor="contact-message"
+                  className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1.5"
+                >
                   Your Message
                 </label>
                 <textarea
+                  id="contact-message"
                   rows={5}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tell us how we can help..."
+                  aria-invalid={touched && messageTooShort}
+                  aria-describedby={touched && messageTooShort ? 'contact-message-error' : undefined}
                   className="w-full rounded-md border border-stone-300 bg-white px-3.5 py-2 text-sm text-stone-800 shadow-xs focus:border-[#7e2b44] focus:outline-none focus:ring-1 focus:ring-[#7e2b44]"
                   required
                 />
+                {touched && messageTooShort && (
+                  <p id="contact-message-error" className="mt-1 text-[11px] text-red-700">
+                    Please add a little more detail (at least {MIN_MESSAGE_LENGTH} characters).
+                  </p>
+                )}
               </div>
+
+              {/* Honeypot: hidden from sighted users and screen readers. */}
+              <div aria-hidden="true" className="hidden">
+                <label htmlFor="contact-website">Website</label>
+                <input
+                  id="contact-website"
+                  name="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </div>
+
+              {submitError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-[11px] text-red-800"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <p>{submitError}</p>
+                </div>
+              )}
 
               <div className="pt-2">
                 <Button
@@ -140,12 +239,21 @@ export const ContactPage: React.FC = () => {
                   variant="primary"
                   size="lg"
                   className="w-full"
+                  disabled={isLoading}
                   isLoading={isLoading}
                   rightIcon={<Send className="h-4 w-4" />}
                 >
                   Send Enquiry
                 </Button>
               </div>
+
+              <p className="text-[11px] leading-relaxed text-stone-500">
+                We use your details only to answer your message. See our{' '}
+                <a href="/privacy" className="underline">
+                  privacy policy
+                </a>
+                .
+              </p>
             </form>
           )}
         </div>

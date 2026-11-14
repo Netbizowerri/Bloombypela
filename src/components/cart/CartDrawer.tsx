@@ -276,6 +276,16 @@ export const CartDrawer: React.FC = () => {
                           {item.variant.name} • <span className="font-medium text-stone-700">{formatPence(item.variant.pricePence)} each</span>
                         </p>
 
+                        {/* Declared allergens, always visible in the basket. */}
+                        <p className="mt-1 text-[11px] leading-snug text-stone-500">
+                          Allergens:{' '}
+                          <strong className="font-semibold text-[#742937]">
+                            {item.product.allergens && item.product.allergens.length > 0
+                              ? item.product.allergens.join(', ')
+                              : 'None of the 14 major UK allergens declared'}
+                          </strong>
+                        </p>
+
                         {/* Touch-Friendly Stepper & Delete Button */}
                         <div className="mt-3 flex items-center justify-between gap-2">
                           {/* Tactile Quantity Stepper with >= 36px touch target */}

@@ -80,7 +80,11 @@ service cloud.firestore {
           && data.allergens.size() <= 14
           && data.variants is list
           && data.variants.size() >= 1
-          && data.variants.size() <= 20;
+          && data.variants.size() <= 20
+          // Food-safety gate: a product can only go live once a human has
+          // reviewed its allergen list.
+          && data.allergenReviewed is bool
+          && (data.status != 'active' || data.allergenReviewed == true);
       }
 
       // Hidden products are only visible to staff.
@@ -188,6 +192,29 @@ service cloud.firestore {
 
       allow read: if true;
       allow write: if isAdmin() && settingsAreValid();
+    }
+
+    // ---------------------------------------------------------------------
+    // Staff-editable pages and policy copy.
+    // Public reads only see published pages; drafts stay staff-only.
+    // ---------------------------------------------------------------------
+    match /content/{slug} {
+      function contentIsValid() {
+        let data = request.resource.data;
+        return data.title is string
+          && data.title.size() > 0
+          && data.title.size() <= 120
+          && data.description is string
+          && data.description.size() <= 300
+          && data.bodyHtml is string
+          && data.bodyHtml.size() <= 40000
+          && data.published is bool
+          && data.placeholder is bool;
+      }
+
+      allow read: if isStaff() || resource.data.published == true;
+      allow create, update: if isStaff() && contentIsValid();
+      allow delete: if isAdmin();
     }
 
     // ---------------------------------------------------------------------

@@ -46,6 +46,8 @@ export interface PublicOrderItem {
   quantity: number;
   unitPricePence: number;
   lineTotalPence: number;
+  /** Absent for orders placed before allergen capture was added. */
+  allergens?: string[];
 }
 
 export interface PublicOrder {

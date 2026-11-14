@@ -44,6 +44,8 @@ export interface PricedLine extends QuoteLine {
   productType: Product['type'];
   variantName: string;
   sku: string;
+  /** UK allergens for this recipe, copied so order history stays truthful. */
+  allergens: string[];
 }
 
 export interface CartQuote {
@@ -182,6 +184,7 @@ export async function computeCartQuote(
       productType: product.type,
       variantName: variant.name,
       sku: variant.sku,
+      allergens: Array.isArray(product.allergens) ? product.allergens : [],
     });
   }
 

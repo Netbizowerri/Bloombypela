@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
+import { ConsentProvider } from './features/consent/ConsentContext';
 
 // Layouts & Guards
 import { ScrollToTop } from './components/common/ScrollToTop';
@@ -22,8 +23,13 @@ import { AboutPage } from './pages/AboutPage';
 import { DeliveryInfoPage } from './pages/DeliveryInfoPage';
 import { AllergensPage } from './pages/AllergensPage';
 import { ContactPage } from './pages/ContactPage';
-import { TermsPage } from './pages/TermsPage';
-import { PrivacyPage } from './pages/PrivacyPage';
+import {
+  FaqsPage,
+  PrivacyRoutePage,
+  ReturnsPolicyPage,
+  SubscriptionTermsPage,
+  TermsRoutePage,
+} from './pages/contentRoutes';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { AccessDeniedPage } from './pages/AccessDeniedPage';
 
@@ -91,15 +97,19 @@ const AdminAudit = lazy(() =>
 const AdminPromotions = lazy(() =>
   import('./pages/admin/AdminPromotions').then((module) => ({ default: module.AdminPromotions }))
 );
+const AdminContent = lazy(() =>
+  import('./pages/admin/AdminContent').then((module) => ({ default: module.AdminContent }))
+);
 
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
-      <AuthProvider>
-        <ToastProvider>
-          <CartProvider>
-            <Suspense fallback={<PageLoader />}>
+      <ConsentProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <CartProvider>
+              <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public Storefront Routes */}
                 <Route element={<PublicLayout />}>
@@ -117,8 +127,11 @@ export default function App() {
                   <Route path="/delivery" element={<DeliveryInfoPage />} />
                   <Route path="/allergens" element={<AllergensPage />} />
                   <Route path="/contact" element={<ContactPage />} />
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="/privacy" element={<PrivacyPage />} />
+                  <Route path="/faqs" element={<FaqsPage />} />
+                  <Route path="/terms" element={<TermsRoutePage />} />
+                  <Route path="/privacy" element={<PrivacyRoutePage />} />
+                  <Route path="/subscription-terms" element={<SubscriptionTermsPage />} />
+                  <Route path="/returns" element={<ReturnsPolicyPage />} />
 
                   {/* Authentication Routes */}
                   <Route path="/login" element={<LoginPage />} />
@@ -153,16 +166,18 @@ export default function App() {
                   <Route path="delivery" element={<AdminDeliverySettings />} />
                   <Route path="capacity" element={<AdminCapacity />} />
                   <Route path="promotions" element={<AdminPromotions />} />
+                  <Route path="content" element={<AdminContent />} />
                   <Route path="audit" element={<AdminAudit />} />
                 </Route>
 
                 {/* 404 Catch-All */}
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
-            </Suspense>
-          </CartProvider>
-        </ToastProvider>
-      </AuthProvider>
+              </Suspense>
+            </CartProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </ConsentProvider>
     </BrowserRouter>
   );
 }

@@ -89,6 +89,7 @@ function docToProduct(snap: DocumentData): Product {
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : undefined,
     seoDescription: typeof data.seoDescription === 'string' ? data.seoDescription : undefined,
     isPopular: typeof data.isPopular === 'boolean' ? data.isPopular : undefined,
+    allergenReviewed: data.allergenReviewed === true,
     createdAt: readTimestampMillis(data.createdAt),
   };
 }

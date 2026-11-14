@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Shield,
   Layers,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
@@ -26,6 +27,7 @@ export const AdminSidebar: React.FC<{ onCloseMobile?: () => void }> = ({ onClose
     { label: 'Delivery & Schedules', to: '/admin/delivery', icon: Truck },
     { label: 'Juice Batch Capacity', to: '/admin/capacity', icon: CalendarDays },
     { label: 'Promotions & Codes', to: '/admin/promotions', icon: Sparkles },
+    { label: 'Pages & Policies', to: '/admin/content', icon: FileText },
     { label: 'Audit Trail', to: '/admin/audit', icon: Layers },
   ];
 

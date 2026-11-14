@@ -7,6 +7,9 @@ import { PageLoader } from '../components/ui/PageLoader';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useProduct, useProducts } from '../features/catalogue';
 import { useToast } from '../context/ToastContext';
+import { Seo } from '../components/seo/Seo';
+import { productSchema } from '../lib/seo';
+import { SITE_URL } from '../lib/site';
 import {
   ChevronRight,
   ShieldCheck,
@@ -146,6 +149,18 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 text-left">
+      <Seo
+        title={product.seoTitle?.trim() || product.name}
+        description={
+          product.seoDescription?.trim() ||
+          product.shortDescription ||
+          product.description.slice(0, 155)
+        }
+        path={`/product/${product.slug}`}
+        type="product"
+        image={product.images[0]?.url}
+        jsonLd={[productSchema(product, SITE_URL)]}
+      />
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-1.5 text-xs text-stone-500 mb-6 overflow-x-auto whitespace-nowrap pb-1">
         <Link to="/" className="hover:text-stone-900 transition-colors">

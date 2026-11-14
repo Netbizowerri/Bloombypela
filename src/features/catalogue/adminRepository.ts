@@ -38,6 +38,7 @@ export type ProductWriteInput = {
   seoTitle?: string | null;
   seoDescription?: string | null;
   isPopular?: boolean;
+  allergenReviewed: boolean;
 };
 
 const COLLECTION = 'products';
@@ -61,6 +62,7 @@ function toProductFields(input: ProductWriteInput): Record<string, unknown> {
     seoTitle: input.seoTitle ?? null,
     seoDescription: input.seoDescription ?? null,
     isPopular: input.isPopular ?? false,
+    allergenReviewed: input.allergenReviewed,
   });
 }
 
@@ -133,6 +135,10 @@ export const catalogueAdmin = {
       name: `${original.name} (Copy)`,
       slug: `${original.slug}-copy`,
       isPopular: false,
+      // A duplicate is a new document: hide it and require a fresh allergen
+      // review so an edited copy can never go live unreviewed.
+      status: 'hidden',
+      allergenReviewed: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });

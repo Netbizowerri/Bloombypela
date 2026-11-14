@@ -27,6 +27,9 @@ export {
   updatePublicSettings,
 } from './delivery/admin';
 export { quoteCart } from './checkout/quote';
+export { submitContact } from './contact';
+export { deleteMyAccount, exportMyData } from './gdpr';
+export { onContentChanged, onProductChanged } from './contentDispatch';
 export {
   createPromotion,
   updatePromotion,

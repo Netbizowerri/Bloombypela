@@ -497,6 +497,7 @@ describe('products', () => {
       seoTitle: null,
       seoDescription: null,
       isPopular: false,
+      allergenReviewed: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -530,6 +531,81 @@ describe('products', () => {
           { url: 'https://a/4.jpg', publicId: '4' },
         ],
       })
+    );
+  });
+
+  it('requires an allergen review before a product can be active', async () => {
+    const unreviewedActive = {
+      name: 'New juice',
+      slug: 'new-juice',
+      type: 'juice',
+      category: 'Juices',
+      description: 'Fresh juice.',
+      ingredients: ['apple'],
+      allergens: [],
+      weightOrVolume: '330ml',
+      images: [],
+      status: 'active',
+      variants: [{ id: 'v1', name: '330ml', pricePence: 450, sku: 'J-330', stock: 5 }],
+      allergenReviewed: false,
+    };
+
+    // The food-safety gate: no review, no publication, even for an admin.
+    await assertFails(setDoc(doc(dbFor(admin()), 'products/prod-unreviewed'), unreviewedActive));
+
+    // A hidden draft is allowed so staff can prepare it before review.
+    await assertSucceeds(
+      setDoc(doc(dbFor(admin()), 'products/prod-draft'), {
+        ...unreviewedActive,
+        status: 'hidden',
+      })
+    );
+
+    // Activating it without the review flag is still refused.
+    await assertFails(
+      updateDoc(doc(dbFor(admin()), 'products/prod-draft'), {
+        status: 'active',
+        updatedAt: serverTimestamp(),
+      })
+    );
+
+    // Reviewing it unlocks publication.
+    await assertSucceeds(
+      updateDoc(doc(dbFor(admin()), 'products/prod-draft'), {
+        status: 'active',
+        allergenReviewed: true,
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  it('publishes only reviewed, public, shape-valid documents in the content collection', async () => {
+    const page = {
+      slug: 'privacy',
+      title: 'Privacy Policy',
+      description: 'How we handle your data.',
+      bodyHtml: '<p>PLACEHOLDER - REVIEW BY CLIENT</p>',
+      published: true,
+      placeholder: true,
+      updatedAt: serverTimestamp(),
+    };
+
+    // Drafts are invisible to the public even when the slug is known.
+    await seed('content/draft-page', { ...page, slug: 'draft-page', published: false });
+    await assertFails(getDoc(doc(dbFor(customer()), 'content/draft-page')));
+    await assertSucceeds(getDoc(doc(dbFor(staff()), 'content/draft-page')));
+
+    // Published copy is public read, staff write.
+    await assertSucceeds(setDoc(doc(dbFor(staff()), 'content/privacy'), page));
+    await assertSucceeds(getDoc(doc(dbFor(anonymous()), 'content/privacy')));
+    await assertFails(
+      setDoc(doc(dbFor(customer()), 'content/customer-page'), {
+        ...page,
+        slug: 'customer-page',
+      })
+    );
+    await assertFails(
+      setDoc(doc(dbFor(staff()), 'content/bad-page'), { ...page, slug: 'bad-page', published: 'yes' })
     );
   });
 

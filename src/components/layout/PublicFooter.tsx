@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, MapPin, Mail, Sparkles, Heart } from 'lucide-react';
+import { useConsent } from '../../features/consent/ConsentContext';
 
 export const PublicFooter: React.FC = () => {
+  const { openPreferences } = useConsent();
+
   return (
     <footer className="bg-[#0a3318] text-cream-100 border-t border-[#155d2c]">
       {/* Brand Header & Value Proposition */}
@@ -177,8 +180,16 @@ export const PublicFooter: React.FC = () => {
         <div className="mt-12 pt-8 border-t border-[#155d2c]/40 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-4">
           <p>© {new Date().getFullYear()} Bloom by Pela (bloombypela.com). Nourish. Naturally. All rights reserved.</p>
           <div className="flex items-center gap-4 text-[11px]">
+            <button
+              type="button"
+              onClick={openPreferences}
+              className="underline decoration-dotted underline-offset-2 hover:text-white"
+            >
+              Cookie preferences
+            </button>
+            <span aria-hidden="true">•</span>
             <span>Payments powered by Stripe</span>
-            <span>•</span>
+            <span aria-hidden="true">•</span>
             <span>Cards, Apple Pay, Google Pay</span>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useForm, useFieldArray, useWatch, useController, type Control } from 'r
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { Plus, Trash2, Copy, Eye, EyeOff, Edit, Upload, Image, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Copy, Eye, EyeOff, Edit, Upload, Image, RefreshCw, AlertTriangle } from 'lucide-react';
 import { formatPence } from '../../lib/utils';
 import { penceToPounds, poundsToPence } from '../../lib/money';
 import { cld, cloudinaryPublicId } from '../../lib/cld';
@@ -45,6 +45,8 @@ type ClientProduct = {
   seoTitle?: string | null;
   seoDescription?: string | null;
   isPopular?: boolean;
+  /** Food-safety flag: allergens checked by a human and safe to publish. */
+  allergenReviewed: boolean;
 };
 
 type ClientVariant = {
@@ -142,6 +144,10 @@ const ClientProductSchema = z.object({
   seoTitle: z.string().max(200).optional().nullable(),
   seoDescription: z.string().max(400).optional().nullable(),
   isPopular: z.boolean().optional(),
+  allergenReviewed: z.boolean(),
+}).refine((value) => value.status !== 'active' || value.allergenReviewed, {
+  path: ['allergenReviewed'],
+  message: 'Confirm the allergen review before this product can be active.',
 });
 
 /** Builds a storefront-safe slug from a product name. */
@@ -255,6 +261,7 @@ function defaultProduct(): ClientProductInput {
     seoTitle: null,
     seoDescription: null,
     isPopular: false,
+    allergenReviewed: false,
   };
 }
 
@@ -279,6 +286,7 @@ function toClientProduct(server: unknown): ClientProduct {
     seoTitle: p.seoTitle ?? null,
     seoDescription: p.seoDescription ?? null,
     isPopular: p.isPopular ?? false,
+    allergenReviewed: p.allergenReviewed === true,
   };
 }
 
@@ -305,6 +313,7 @@ export const AdminCatalogue: React.FC = () => {
   // Watched so checkbox/select changes re-render: form.getValues() alone does not subscribe.
   const allergens = (useWatch({ control: form.control, name: 'allergens' }) ?? []) as Allergen[];
   const status = useWatch({ control: form.control, name: 'status' });
+  const allergenReviewed = useWatch({ control: form.control, name: 'allergenReviewed' });
   const isPopular = useWatch({ control: form.control, name: 'isPopular' });
   const productType = useWatch({ control: form.control, name: 'type' });
   /**
@@ -465,6 +474,13 @@ export const AdminCatalogue: React.FC = () => {
         await catalogueAdmin.softDeleteProduct(product.id);
         success('Product hidden', `${product.name} is no longer visible to customers.`);
       } else {
+        if (!product.allergenReviewed) {
+          showError(
+            'Allergens not reviewed',
+            `Open ${product.name}, confirm the allergen list and tick "Allergens reviewed" before making it active.`,
+          );
+          return;
+        }
         await catalogueAdmin.updateProduct({ ...product, status: 'active' });
         success('Product active', `${product.name} is visible to customers again.`);
       }
@@ -756,14 +772,25 @@ export const AdminCatalogue: React.FC = () => {
                     </td>
 
                     <td className="py-3 px-5">
-                      <Badge
-                        variant={
-                          client.status === 'active' ? 'green' : client.status === 'seasonal' ? 'gold' : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {client.status}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          variant={
+                            client.status === 'active' ? 'green' : client.status === 'seasonal' ? 'gold' : 'neutral'
+                          }
+                          size="sm"
+                        >
+                          {client.status}
+                        </Badge>
+                        {!client.allergenReviewed && (
+                          <span
+                            title="Allergens not reviewed: this product cannot be made active until they are."
+                            className="inline-flex items-center text-amber-700"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span className="sr-only">Allergens not reviewed</span>
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-3 px-5 text-right">
@@ -1012,6 +1039,29 @@ export const AdminCatalogue: React.FC = () => {
                     );
                   })}
                 </div>
+                <label className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-700">
+                  <input
+                    type="checkbox"
+                    {...form.register('allergenReviewed')}
+                    className="mt-0.5 h-3.5 w-3.5 rounded border-stone-300 text-[#7e2b44] focus:ring-[#7e2b44]"
+                  />
+                  <span>
+                    <strong className="font-semibold">Allergens reviewed</strong> — I have checked this
+                    product&apos;s allergen list against the recipe and packaging. Required before the
+                    product can be active.
+                  </span>
+                </label>
+                {(status === 'active' || status === 'seasonal') && !allergenReviewed && (
+                  <p className="flex items-start gap-1.5 text-[10px] font-semibold text-[#c93c3c]">
+                    <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                    This product cannot be saved as active until the allergen review is confirmed.
+                  </p>
+                )}
+                {form.formState.errors.allergenReviewed && (
+                  <p className="text-[10px] text-[#c93c3c]">
+                    {form.formState.errors.allergenReviewed.message}
+                  </p>
+                )}
               </div>
 
               {/* Images */}

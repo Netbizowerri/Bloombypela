@@ -44,6 +44,8 @@ export interface Product {
   seoTitle?: string;
   seoDescription?: string;
   isPopular?: boolean;
+  /** Food-safety flag; absent means not reviewed (see firestore.rules). */
+  allergenReviewed?: boolean;
 }
 
 export interface ProductBundle {
@@ -161,6 +163,8 @@ export interface OrderItem {
   productType: 'snack' | 'juice';
   unitPricePence: number;
   lineTotalPence: number;
+  /** Allergens as declared when the order was placed. */
+  allergens: string[];
 }
 
 export interface OrderContact {

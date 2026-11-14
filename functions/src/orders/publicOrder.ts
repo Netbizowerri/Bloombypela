@@ -40,6 +40,7 @@ export interface PublicOrderItem {
   quantity: number;
   unitPricePence: number;
   lineTotalPence: number;
+  allergens: string[];
 }
 
 export interface PublicOrder {
@@ -71,6 +72,7 @@ function toPublicOrder(order: OrderRecord): PublicOrder {
       quantity: item.quantity,
       unitPricePence: item.unitPricePence,
       lineTotalPence: item.lineTotalPence,
+      allergens: Array.isArray(item.allergens) ? item.allergens : [],
     })),
     subtotalPence: order.subtotalPence,
     deliveryFeePence: order.deliveryFeePence,

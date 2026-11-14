@@ -1,0 +1,21 @@
+# Bloom by Pela - robots.txt
+# Public storefront is crawlable; transactional and staff areas are not.
+
+User-agent: *
+Allow: /
+
+# Customer and staff areas
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+Disallow: /orders/track
+
+# Auth screens
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+
+# Never index API responses
+Disallow: /api/
+
+Sitemap: https://bloombypela.com/sitemap.xml

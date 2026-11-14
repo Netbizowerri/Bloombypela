@@ -30,6 +30,7 @@ export type AuditEntity =
   | 'closedDate'
   | 'dateCapacity'
   | 'publicSettings'
+  | 'contentPage'
   | 'order';
 
 /**

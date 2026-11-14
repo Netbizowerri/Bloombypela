@@ -63,6 +63,7 @@ function orderContext(order: OrderRecord): OrderContext {
       variantName: item.variantName,
       quantity: item.quantity,
       lineTotalPence: item.lineTotalPence,
+      allergens: Array.isArray(item.allergens) ? item.allergens : [],
     })),
     subtotalPence: order.subtotalPence,
     deliveryFeePence: order.deliveryFeePence,

@@ -37,6 +37,7 @@ export interface ReservationItem {
   productType: 'snack' | 'juice';
   unitPricePence: number;
   lineTotalPence: number;
+  allergens: string[];
 }
 
 export interface ReservationContact {
@@ -353,6 +354,7 @@ function toReservationItem(line: PricedLine): ReservationItem {
     productType: line.productType,
     unitPricePence: line.unitPricePence,
     lineTotalPence: line.lineTotalPence,
+    allergens: line.allergens,
   };
 }
 

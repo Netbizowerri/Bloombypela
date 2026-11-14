@@ -22,6 +22,8 @@ export interface OrderItem {
   productType: 'snack' | 'juice';
   unitPricePence: number;
   lineTotalPence: number;
+  /** Missing on orders placed before allergen capture was added. */
+  allergens?: string[];
 }
 
 export interface OrderContact {
