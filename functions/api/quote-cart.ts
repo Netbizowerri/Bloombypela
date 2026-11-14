@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { adminDb } from '../serverless/firebase';
 import { handleCors, requestIp, sendMethodNotAllowed } from '../serverless/http';
 import { checkRateLimit } from '../src/lib/rateLimit';
-import { isValidUKPostcode, isNewcastlePostcode } from '../src/delivery/outwardCode';
+import { isValidUKPostcode } from '../src/delivery/outwardCode';
 import { computeCartQuote } from '../src/checkout/quoteService';
 
 const quoteInputSchema = z.object({
@@ -28,13 +28,6 @@ const quoteInputSchema = z.object({
       code: 'custom',
       path: ['postcode'],
       message: 'Enter a valid UK postcode.',
-    });
-  }
-  if (fulfilment === 'delivery' && !isNewcastlePostcode(postcode)) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['postcode'],
-      message: 'Delivery is only available to Newcastle upon Tyne postcodes (NE districts).',
     });
   }
 });
