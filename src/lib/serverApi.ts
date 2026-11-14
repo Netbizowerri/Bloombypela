@@ -3,17 +3,23 @@ import { z } from 'zod';
 
 const apiErrorSchema = z.object({ error: z.string() });
 
+/**
+ * Resolves the checkout API origin. Production builds must configure it: there
+ * is no hard-coded fallback, so a missing variable fails loudly instead of
+ * silently posting customer data to an unintended host.
+ */
+function resolveBaseUrl(): string {
+  const configuredUrl = import.meta.env.VITE_CHECKOUT_API_URL?.trim();
+  if (configuredUrl) return configuredUrl.replace(/\/+$/, '');
+  if (import.meta.env.DEV) return 'http://localhost:3001';
+  throw new Error('Checkout API URL is not configured.');
+}
+
 export async function postServerApi<TRequest, TResponse>(
   path: string,
   payload: TRequest,
 ): Promise<{ data: TResponse }> {
-  const configuredUrl = import.meta.env.VITE_CHECKOUT_API_URL?.trim();
-  const baseUrl = (
-    configuredUrl ||
-    (import.meta.env.DEV
-      ? 'http://localhost:3001'
-      : 'https://bloombypela.vercel.app')
-  ).replace(/\/+$/, '');
+  const baseUrl = resolveBaseUrl();
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = await auth?.currentUser?.getIdToken();

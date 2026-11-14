@@ -230,8 +230,9 @@ in Vercel Project Settings > Environment Variables (never commit their values):
   `https://bloombypela.com` and `https://www.bloombypela.com`.
 
 Set `VITE_CHECKOUT_API_URL` in the frontend build environment to
-`https://bloombypela.vercel.app` (this is also the production default), then
-rebuild and deploy the frontend to Firebase Hosting.
+`https://bloombypela.vercel.app`. There is no hard-coded production default: a
+build without this variable fails at checkout with "Checkout API URL is not
+configured.", so set it whenever you rebuild and deploy the frontend.
 
 Register the Stripe webhook endpoint
 `https://<vercel-project>.vercel.app/api/stripe-webhook` with these events:
