@@ -40,23 +40,3 @@ export function isAreaServed(
   const code = outwardCode.toUpperCase();
   return areas.some((a) => a.isActive && a.outwardCode.toUpperCase() === code);
 }
-
-/**
- * Newcastle upon Tyne postcode districts currently served by Bloom by Pela.
- * Only these outward codes are accepted for delivery at this time.
- */
-export const NEWCASTLE_OUTWARD_CODES = [
-  'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NE7', 'NE8',
-  'NE12', 'NE13', 'NE15', 'NE16', 'NE18', 'NE19', 'NE20',
-];
-
-/**
- * Checks whether a UK postcode falls within a Newcastle upon Tyne district
- * that Bloom by Pela currently delivers to.
- */
-export function isNewcastlePostcode(postcode: string): boolean {
-  if (!isValidUKPostcode(postcode)) return false;
-  const outward = parseOutwardCode(postcode);
-  return NEWCASTLE_OUTWARD_CODES.includes(outward);
-}
-
