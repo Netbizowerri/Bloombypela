@@ -90,8 +90,8 @@ service cloud.firestore {
       // Hidden products are only visible to staff.
       allow read: if isStaff() || resource.data.status != 'hidden';
       allow create, update: if isStaff() && productIsValid();
-      // Products are hidden (soft delete), never removed, so order history stays readable.
-      allow delete: if false;
+      // Products may be soft-hidden via status, or hard-deleted by an admin.
+      allow delete: if isAdmin();
 
       match /variants/{variantId} {
         function parentIsVisible() {
