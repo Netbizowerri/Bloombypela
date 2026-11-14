@@ -7,3 +7,4 @@ export { SEED_BUNDLES } from './bundles';
 export { SEED_SUBSCRIPTION_PLANS } from './subscriptionPlans';
 export { SEED_DELIVERY_AREAS } from './deliveryAreas';
 export { SEED_CATEGORIES } from './categories';
+export { SEED_CONTENT } from './content';

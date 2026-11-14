@@ -9,6 +9,7 @@ import { SEED_DELIVERY_SCHEDULE } from '../src/data/seed/deliverySchedule.js';
 import { SEED_CLOSED_DATES } from '../src/data/seed/closedDates.js';
 import { SEED_DATE_CAPACITY } from '../src/data/seed/dateCapacity.js';
 import { SEED_CATEGORIES } from '../src/data/seed/categories.js';
+import { SEED_CONTENT } from '../src/data/seed/content.js';
 import { SEED_PUBLIC_SETTINGS } from '../src/data/seed/publicSettings.js';
 import { SEED_PROMOTIONS } from '../src/data/seed/promotions.js';
 
@@ -99,6 +100,7 @@ async function main(): Promise<void> {
     ['closedDates', SEED_CLOSED_DATES],
     ['dateCapacity', SEED_DATE_CAPACITY.map((c: { date: string }) => ({ ...c, id: c.date }))],
     ['promotions', SEED_PROMOTIONS],
+    ['content', SEED_CONTENT],
   ];
 
   // publicSettings uses a fixed document id 'settings'
