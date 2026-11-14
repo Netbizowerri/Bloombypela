@@ -65,7 +65,7 @@ export const ShopJuicesPage: React.FC = () => {
         <div className="bg-[#e2f0e6] p-4 rounded-xl border border-[#c4e0ce] text-xs max-w-sm">
           <div className="flex items-center gap-1.5 font-bold text-[#245840] mb-1">
             <Calendar className="h-4 w-4" />
-            <span>Weekly Thursday Delivery</span>
+            <span>Weekly Friday Delivery</span>
           </div>
           <p className="text-stone-700 text-[11px]">
             Orders close Mondays at 12:00 PM London time to prepare fresh batches.
@@ -202,3 +202,4 @@ export const ShopJuicesPage: React.FC = () => {
   </div>
   );
 };
+

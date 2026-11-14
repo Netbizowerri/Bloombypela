@@ -179,7 +179,7 @@ export const ShopPage: React.FC = () => {
         <div className="flex items-center gap-2 text-xs bg-[#FFF5E6] border border-[#eedcc8] px-3.5 py-2 rounded-xl text-stone-800 shrink-0">
           <Calendar className="h-4 w-4 text-[#155d2c] shrink-0" />
           <span>
-            Thursday doorstep delivery.{' '}
+            Friday doorstep delivery.{' '}
             <Link to="/subscriptions" className="font-bold text-[#155d2c] hover:underline">
               Save with subscriptions →
             </Link>
@@ -443,3 +443,4 @@ export const ShopPage: React.FC = () => {
     </div>
   );
 };
+

@@ -17,7 +17,7 @@ export const AdminSubscriptions: React.FC = () => {
       bottles: 5,
       pricePence: 1950,
       status: 'active',
-      nextDelivery: '2026-11-05 (Thursday)',
+      nextDelivery: '2026-11-06 (Friday)',
       flavours: 'Tropical Bloom x2, Skin Glow x1, Zobo x1, Detox juice blend x1',
       postcode: 'NE2 2AZ',
     },
@@ -77,7 +77,7 @@ export const AdminSubscriptions: React.FC = () => {
               <tr>
                 <th className="py-3 px-5">Subscriber</th>
                 <th className="py-3 px-5">Plan & Rate</th>
-                <th className="py-3 px-5">Flavours for Next Thursday</th>
+                <th className="py-3 px-5">Flavours for Next Friday</th>
                 <th className="py-3 px-5">Area</th>
                 <th className="py-3 px-5">Status</th>
                 <th className="py-3 px-5 text-right">Actions</th>
@@ -130,3 +130,4 @@ export const AdminSubscriptions: React.FC = () => {
     </div>
   );
 };
+

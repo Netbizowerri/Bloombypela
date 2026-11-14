@@ -10,10 +10,10 @@ export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     bottleCount: 3,
     pricePence: 1250, // unconfirmed: old £12.50 / week value, not shown to customers
     frequency: 'weekly',
-    description: '3 bespoke 330ml cold-pressed juices delivered fresh every Thursday to your doorstep in Newcastle.',
+    description: '3 bespoke 330ml cold-pressed juices delivered fresh every Friday to your doorstep in Newcastle.',
     features: [
       'Choose your 3 favourite flavours each week',
-      'Free Thursday local delivery included',
+      'Free Friday local delivery included',
       'Skip or pause anytime before Monday 12:00 cut-off',
       'Guaranteed juice capacity reservation',
     ],
@@ -28,10 +28,11 @@ export const SEED_SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     description: '5 cold-pressed wellness juices for everyday nourishing vitality throughout your work week.',
     features: [
       '5 bottles of your choice per week',
-      'Free Thursday Newcastle delivery',
+      'Free Friday Newcastle delivery',
       '1 complimentary Ginger Wellness Shot with every delivery',
       'Pause or cancel anytime in 2 clicks',
     ],
     isPopular: true,
   },
 ];
+

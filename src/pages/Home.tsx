@@ -191,8 +191,8 @@ export const HomePage: React.FC = () => {
               <div className="w-[280px] h-[280px] sm:w-[340px] sm:h-[340px] rounded-full bg-gradient-to-tr from-[#f6c944] via-[#fbd760] to-[#f9cf48] shadow-2xl flex items-center justify-center overflow-hidden relative">
                 {/* Bloom by Pela Hero Showcase */}
                 <img
-                  src="https://res.cloudinary.com/titznrnk/image/upload/f_auto,q_auto/Bloombypela"
-                  alt="Bloom by Pela fresh juices and artisan snacks"
+                  src="https://res.cloudinary.com/titznrnk/image/upload/v1794658911/Bloombypela_Hero_section.jpg"
+                  alt="Bloom by Pela hero section fresh juices and artisan snacks"
                   className="w-full h-full object-cover"
                 />
 
@@ -217,7 +217,7 @@ export const HomePage: React.FC = () => {
                   Fast delivery
                 </h4>
                 <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
-                  Scheduled delivery to your Newcastle doorstep every Thursday. Free on £30+.
+                  Scheduled delivery to your Newcastle doorstep every Friday. Free on £30+.
                 </p>
               </div>
             </div>
@@ -266,7 +266,7 @@ export const HomePage: React.FC = () => {
                 <Truck className="h-4 w-4" /> Newcastle Delivery Check
               </div>
               <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
-                Check Your Postcode for Thursday Drop
+                Check Your Postcode for Friday Drop
               </h3>
               <p className="text-xs text-stone-500">
                 Enter your UK outward postcode (e.g. NE1, NE2, NE3, NE7) to check eligible areas.
@@ -297,7 +297,7 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
                   <Check className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span>
-                    Postcode outward <strong>{postcodeResult.area}</strong> is eligible for Thursday fresh delivery (Free on orders £30+)!
+                    Postcode outward <strong>{postcodeResult.area}</strong> is eligible for Friday fresh delivery (Free on orders £30+)!
                   </span>
                 </div>
               ) : (
@@ -446,7 +446,7 @@ export const HomePage: React.FC = () => {
               Newcastle's Fresh Weekly Juice Ritual
             </h2>
             <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed font-light">
-              Never run out of morning nutrients. Pick your pack (Bloom 3 or Bloom 5), customize your flavours each week, and receive your cold-pressed wellness package every Thursday morning.
+              Never run out of morning nutrients. Pick your pack (Bloom 3 or Bloom 5), customize your flavours each week, and receive your cold-pressed wellness package every Friday morning.
             </p>
 
             <div className="pt-2 flex flex-wrap gap-4 items-center">
@@ -472,3 +472,4 @@ export const HomePage: React.FC = () => {
     </div>
   );
 };
+

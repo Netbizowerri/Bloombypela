@@ -53,7 +53,7 @@ export const AboutPage: React.FC = () => {
             Our juices are freshly cold-pressed right here in the UK. We never use concentrates, heat pasteurisation, or synthetic preservatives. From our fiery ginger wellness shots to our slow-brewed hibiscus Zobo tonic, each bottle is a celebration of raw botanicals and living nutrients.
           </p>
           <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
-            We batch-press every week for delivery on Thursdays, ensuring Newcastle customers experience the freshest possible pressed juice at its nutritional peak.
+            We batch-press every week for delivery on Fridays, ensuring Newcastle customers experience the freshest possible pressed juice at its nutritional peak.
           </p>
         </div>
       </div>
@@ -84,3 +84,4 @@ export const AboutPage: React.FC = () => {
     </div>
   );
 };
+

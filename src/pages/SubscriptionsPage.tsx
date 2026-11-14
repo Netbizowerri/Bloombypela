@@ -23,11 +23,11 @@ export const SubscriptionsPage: React.FC = () => {
           </span>
           <h1 className="font-serif text-3xl sm:text-5xl font-bold text-stone-900 leading-tight">
             Your Weekly Wellness Ritual, <br />
-            <span className="italic text-[#7e2b44]">Bottled Fresh Every Thursday.</span>
+            <span className="italic text-[#7e2b44]">Bottled Fresh Every Friday.</span>
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-light">
             Recurring weekly deliveries of raw, cold-pressed juices tailored to your taste, delivered
-            to your Newcastle doorstep every Thursday.
+            to your Newcastle doorstep every Friday.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export const SubscriptionsPage: React.FC = () => {
             <h4 className="font-serif text-base font-bold text-stone-900">Monday 12:00 Cut-off</h4>
             <p className="text-xs text-stone-600 mt-1 leading-relaxed">
               All flavour adjustments, skips, or pauses must be confirmed by Monday noon for that
-              week's Thursday drop.
+              week's Friday drop.
             </p>
           </div>
 
@@ -88,3 +88,5 @@ export const SubscriptionsPage: React.FC = () => {
     </ErrorBoundary>
   );
 };
+
+
