@@ -8,7 +8,7 @@ import { adminAuth, adminDb } from '../serverless/firebase';
 import { handleCors, requestIp, sendMethodNotAllowed } from '../serverless/http';
 import { getAppUrl, getStripeClient } from '../serverless/stripe';
 import { checkRateLimit } from '../src/lib/rateLimit';
-import { isValidUKPostcode } from '../src/delivery/outwardCode';
+import { isValidUKPostcode, isNewcastlePostcode } from '../src/delivery/outwardCode';
 import { computeCartQuote } from '../src/checkout/quoteService';
 import { createReservation, releaseReservation } from '../src/checkout/reservationService';
 
@@ -42,7 +42,15 @@ const checkoutInputSchema = z.object({
       line1: z.string().trim().min(1).max(200),
       line2: z.string().trim().max(200).optional().nullable(),
       city: z.string().trim().min(1).max(120),
-      postcode: z.string().trim().max(20).refine(isValidUKPostcode, 'Enter a valid UK postcode.'),
+      postcode: z
+        .string()
+        .trim()
+        .max(20)
+        .refine(isValidUKPostcode, 'Enter a valid UK postcode.')
+        .refine(
+          isNewcastlePostcode,
+          'Delivery is only available to Newcastle upon Tyne postcodes (NE districts).'
+        ),
     })
     .optional()
     .nullable(),

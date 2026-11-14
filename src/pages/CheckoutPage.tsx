@@ -471,7 +471,7 @@ export const CheckoutPage: React.FC = () => {
                     error={!form.addressCity ? 'City is required' : undefined}
                   />
                   <Input
-                    label="UK postcode"
+                    label="Newcastle Postcode"
                     autoComplete="postal-code"
                     value={form.addressPostcode}
                     onChange={(e) => setField('addressPostcode', e.target.value.toUpperCase())}
@@ -479,7 +479,7 @@ export const CheckoutPage: React.FC = () => {
                       !form.addressPostcode
                         ? 'Postcode is required'
                         : !isValidUKPostcode(form.addressPostcode)
-                          ? 'Enter a valid UK postcode'
+                          ? 'Enter a valid Newcastle postcode (e.g. NE1 1AA)'
                           : undefined
                     }
                   />
