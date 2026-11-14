@@ -317,7 +317,9 @@ sets the order to `partially_refunded` or `refunded` and records
 
 ### Abandoned checkouts
 
-The checkout session expires after 30 minutes. Stripe's
+The checkout session expires after 35 minutes, a margin over Stripe's
+30 minute minimum (a 30 minute value is rejected because it is calculated
+before the quote and reservation round-trips). Stripe's
 `checkout.session.expired` webhook releases its reservation; failed delayed
 payments release theirs when Stripe sends
 `checkout.session.async_payment_failed`. A session that Stripe reports as

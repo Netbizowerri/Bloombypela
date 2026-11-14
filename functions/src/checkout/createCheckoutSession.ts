@@ -27,8 +27,12 @@ import { createReservation, releaseReservation } from './reservationService';
 
 const CHECKOUT_LIMIT = { maxRequests: 10, windowMs: 60_000 };
 
-/** Stripe requires `expires_at` to be at least 30 minutes in the future. */
-const STRIPE_SESSION_MINUTES = 30;
+/**
+ * Stripe rejects a Checkout Session whose `expires_at` is less than 30 minutes
+ * away. `now` is captured before the quote and reservation round-trips, so the
+ * value must sit safely above Stripe's minimum: 30 minutes would land below it.
+ */
+const STRIPE_SESSION_MINUTES = 35;
 
 const CheckoutInput = z.object({
   items: z

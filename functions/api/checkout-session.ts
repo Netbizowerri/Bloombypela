@@ -13,7 +13,12 @@ import { computeCartQuote } from '../src/checkout/quoteService';
 import { createReservation, releaseReservation } from '../src/checkout/reservationService';
 
 const CHECKOUT_LIMIT = { maxRequests: 10, windowMs: 60_000 };
-const STRIPE_SESSION_MINUTES = 30;
+/**
+ * Stripe rejects a Checkout Session whose `expires_at` is less than 30 minutes
+ * away. `now` is captured before the quote and reservation round-trips, so the
+ * value must sit safely above Stripe's minimum: 30 minutes would land below it.
+ */
+const STRIPE_SESSION_MINUTES = 35;
 
 const checkoutInputSchema = z.object({
   items: z
