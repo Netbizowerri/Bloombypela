@@ -46,7 +46,7 @@ export function isAreaServed(
  * Only these outward codes are accepted for delivery at this time.
  */
 export const NEWCASTLE_OUTWARD_CODES = [
-  'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NE7',
+  'NE1', 'NE2', 'NE3', 'NE4', 'NE5', 'NE6', 'NE7', 'NE8',
   'NE12', 'NE13', 'NE15', 'NE16', 'NE18', 'NE19', 'NE20',
 ];
 
@@ -59,3 +59,4 @@ export function isNewcastlePostcode(postcode: string): boolean {
   const outward = parseOutwardCode(postcode);
   return NEWCASTLE_OUTWARD_CODES.includes(outward);
 }
+
